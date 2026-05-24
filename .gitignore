@@ -1,0 +1,29 @@
+# Dependensi Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output Vite / React
+client/dist/
+client/build/
+
+# Variabel Lingkungan Sensitif (Secrets)
+.env
+server/.env
+
+# Database Fallback Lokal (Data Transaksi Personal Pengguna)
+server/models/lokadata.json
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,168 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  
+  body {
+    background-color: #030308;
+    background-image: 
+      radial-gradient(at 10% 20%, rgba(185, 43, 255, 0.08) 0px, transparent 50%),
+      radial-gradient(at 90% 10%, rgba(0, 242, 254, 0.08) 0px, transparent 50%),
+      radial-gradient(at 50% 80%, rgba(0, 255, 135, 0.05) 0px, transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+/* ========================================================
+   FUTURISTIC GLASSMORPHISM DESIGN SYSTEM
+   ======================================================== */
+.glass-panel {
+  background: rgba(8, 8, 22, 0.55);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(12, 12, 32, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 242, 254, 0.1);
+  transform: translateY(-2px);
+}
+
+.glass-input {
+  background: rgba(3, 3, 10, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #f1f5f9;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  border-color: #00f2fe;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+  background: rgba(5, 5, 18, 0.8);
+}
+
+/* ========================================================
+   NEON GLOW UTILITIES
+   ======================================================== */
+.neon-glow-blue {
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+}
+
+.neon-glow-purple {
+  box-shadow: 0 0 15px rgba(185, 43, 255, 0.4);
+}
+
+.neon-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 255, 135, 0.4);
+}
+
+.neon-glow-red {
+  box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+}
+
+.neon-text-blue {
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.6);
+}
+
+.neon-text-purple {
+  text-shadow: 0 0 8px rgba(185, 43, 255, 0.6);
+}
+
+.neon-text-cyan {
+  text-shadow: 0 0 8px rgba(0, 255, 135, 0.6);
+}
+
+/* ========================================================
+   GLOWING BACKGROUND BLOBS (AMBIENT ATMOSPHERE)
+   ======================================================== */
+.ambient-glow-purple {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(185, 43, 255, 0.15) 0%, rgba(0,0,0,0) 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: -10;
+}
+
+.ambient-glow-blue {
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 242, 254, 0.12) 0%, rgba(0,0,0,0) 70%);
+  filter: blur(45px);
+  pointer-events: none;
+  z-index: -10;
+}
+
+/* ========================================================
+   SCROLLBAR FUTURISTIK
+   ======================================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(3, 3, 10, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  border: 2px solid rgba(3, 3, 10, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 242, 254, 0.4);
+  box-shadow: 0 0 5px rgba(0, 242, 254, 0.5);
+}
+
+/* Animasi untuk OCR Scan Line */
+@keyframes scanLineAnimation {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+.ocr-scan-line {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #00f2fe, #00ff87, #00f2fe, transparent);
+  box-shadow: 0 0 12px #00f2fe, 0 0 18px #00ff87;
+  animation: scanLineAnimation 3s ease-in-out infinite;
+}
+
+/* Chrome Autofill Styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f1f5f9;
+  -webkit-box-shadow: 0 0 0px 1000px #080816 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Gelombang suara voice visualizer */
+@keyframes pulseSoundwave {
+  0%, 100% { height: 10px; }
+  50% { height: 45px; }
+}
+
+.soundwave-bar {
+  animation: pulseSoundwave 1.2s ease-in-out infinite;
+}
