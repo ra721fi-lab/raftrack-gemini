@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { Clock, ShieldAlert, Wifi, Database } from 'lucide-react';
+import { API_URL } from '../config';
 
 const Header = () => {
   const { user } = useContext(AuthContext);
@@ -16,7 +17,7 @@ const Header = () => {
     }, 1000);
 
     // Dapatkan status database dari server health
-    fetch('/api/health')
+    fetch(`${API_URL}/api/health`)
       .then(res => res.json())
       .then(data => {
         if (data && data.dbType) {

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { AuthContext } from './AuthContext';
+import { API_URL } from '../config';
 
 export const TransactionContext = createContext();
 
@@ -43,7 +44,7 @@ export const TransactionProvider = ({ children }) => {
       if (filters.startDate) queryParams.append('startDate', filters.startDate);
       if (filters.endDate) queryParams.append('endDate', filters.endDate);
 
-      const response = await fetch(`/api/transactions?${queryParams.toString()}`, {
+      const response = await fetch(`${API_URL}/api/transactions?${queryParams.toString()}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -62,7 +63,7 @@ export const TransactionProvider = ({ children }) => {
     if (!isAuthenticated || !token) return;
     setStatsLoading(true);
     try {
-      const response = await fetch('/api/analytics/stats', {
+      const response = await fetch(`${API_URL}/api/analytics/stats`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
@@ -90,7 +91,7 @@ export const TransactionProvider = ({ children }) => {
   // 3. Tambah Transaksi
   const addTransaction = async (txData) => {
     try {
-      const response = await fetch('/api/transactions', {
+      const response = await fetch(`${API_URL}/api/transactions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -118,7 +119,7 @@ export const TransactionProvider = ({ children }) => {
   // 4. Edit Transaksi
   const editTransaction = async (id, txData) => {
     try {
-      const response = await fetch(`/api/transactions/${id}`, {
+      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -146,7 +147,7 @@ export const TransactionProvider = ({ children }) => {
   // 5. Hapus Transaksi
   const deleteTransaction = async (id) => {
     try {
-      const response = await fetch(`/api/transactions/${id}`, {
+      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -170,7 +171,7 @@ export const TransactionProvider = ({ children }) => {
   // 6. Kirim Pesan ke AI Chatbot
   const sendChatToAI = async (message) => {
     try {
-      const response = await fetch('/api/analytics/chatbot', {
+      const response = await fetch(`${API_URL}/api/analytics/chatbot`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -192,9 +193,9 @@ export const TransactionProvider = ({ children }) => {
   // 7. Unduh Laporan CSV
   const downloadCSV = () => {
     if (!token) return;
-    window.open(`/api/export/csv?token=${token}`, '_self');
+    window.open(`${API_URL}/api/export/csv?token=${token}`, '_self');
     // Alternatif jika butuh header Authorization eksplisit:
-    fetch('/api/export/csv', {
+    fetch(`${API_URL}/api/export/csv`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     .then(res => res.blob())
