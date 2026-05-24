@@ -44,7 +44,7 @@ async function connectDB() {
     // Coba membuat koneksi sementara untuk memverifikasi apakah MySQL server menyala dan kredensial benar
     const connection = await mysql.createConnection({
       host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
+      port: parseInt(process.env.DB_PORT || 3306, 10),
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
     });
@@ -57,7 +57,7 @@ async function connectDB() {
     // Buat pooling koneksi utama ke database target
     pool = mysql.createPool({
       host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
+      port: parseInt(process.env.DB_PORT || 3306, 10),
       user: process.env.DB_USER || 'root',
       password: process.env.DB_PASSWORD || '',
       database: dbName,
