@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://raftrack-gemini-production.up.railway.app'
+        target: 'https://raftrack-gemini-production.up.railway.app',
         changeOrigin: true,
         secure: false,
       }
