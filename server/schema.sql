@@ -2,10 +2,6 @@
 -- SKEMA DATABASE RAFTRACK GEMINI - FUTURISTIC FINTECH
 -- =======================================================
 
--- Membuat Database (jika belum dibuat oleh script db.js)
-CREATE DATABASE IF NOT EXISTS `raftrack_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `raftrack_db`;
-
 -- 1. TABEL USERS
 CREATE TABLE IF NOT EXISTS `users` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,

@@ -40,21 +40,9 @@ function initLokadata() {
 
 // Fungsi untuk menghubungkan ke database MySQL
 async function connectDB() {
+  const dbName = process.env.DB_NAME || 'raftrack_db';
   try {
-    // Coba membuat koneksi sementara untuk memverifikasi apakah MySQL server menyala dan kredensial benar
-    const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || 3306, 10),
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-    });
-
-    // Coba membuat database jika belum ada
-    const dbName = process.env.DB_NAME || 'raftrack_db';
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-    await connection.end();
-
-    // Buat pooling koneksi utama ke database target
+    // 1. Coba langsung menghubungkan pool ke database target (untuk performa & menghindari admin error di cloud)
     pool = mysql.createPool({
       host: process.env.DB_HOST || 'localhost',
       port: parseInt(process.env.DB_PORT || 3306, 10),
@@ -66,6 +54,10 @@ async function connectDB() {
       queueLimit: 0
     });
 
+    // Uji konektivitas pool
+    const conn = await pool.getConnection();
+    conn.release();
+
     dbType = 'mysql';
     printBanner('MySQL Terhubung', [
       'Koneksi MySQL berhasil dibangun.',
@@ -76,16 +68,46 @@ async function connectDB() {
 
     return pool;
   } catch (error) {
-    dbType = 'lokadata';
-    initLokadata();
-    printBanner('Fallback Lokadata Aktif', [
-      'Gagal menghubungkan ke MySQL database server.',
-      'Sistem secara otomatis mengaktifkan database lokal JSON (Lokadata).',
-      'Data transaksi Anda akan disimpan permanen di:',
-      `server/models/lokadata.json`,
-      'Semua fitur aplikasi 100% berjalan normal.'
-    ]);
-    return null;
+    // 2. Jika gagal karena database belum ada (hanya terjadi lokal saat instalasi awal)
+    try {
+      console.log(`[Database Setup] Database '${dbName}' tidak terdeteksi. Mencoba membuat database baru...`);
+      const connection = await mysql.createConnection({
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || 3306, 10),
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+      });
+      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+      await connection.end();
+
+      // Coba hubungkan kembali setelah database berhasil dibuat
+      pool = mysql.createPool({
+        host: process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.DB_PORT || 3306, 10),
+        user: process.env.DB_USER || 'root',
+        password: process.env.DB_PASSWORD || '',
+        database: dbName,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+      });
+
+      dbType = 'mysql';
+      console.log(`[Database Setup] Database '${dbName}' berhasil dibuat dan terhubung.`);
+      return pool;
+    } catch (createErr) {
+      // 3. Jika pembuatan database juga gagal (beralih ke Lokadata JSON)
+      dbType = 'lokadata';
+      initLokadata();
+      printBanner('Fallback Lokadata Aktif', [
+        'Gagal menghubungkan ke MySQL database server.',
+        'Sistem secara otomatis mengaktifkan database lokal JSON (Lokadata).',
+        'Data transaksi Anda akan disimpan permanen di:',
+        `server/models/lokadata.json`,
+        'Semua fitur aplikasi 100% berjalan normal.'
+      ]);
+      return null;
+    }
   }
 }
 
