@@ -126,6 +126,9 @@ const Transactions = () => {
     if (matchedCat) {
       setCategoryId(matchedCat.id);
     }
+    
+    // Buka laci/drawer input secara otomatis agar pengguna melihat data terisi
+    setIsDrawerOpen(true);
   };
 
   // Handler reset filter pencarian
