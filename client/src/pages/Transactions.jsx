@@ -18,12 +18,11 @@ const formatIDR = (value) => {
 const Transactions = () => {
   const { 
     transactions, loading, filters, setFilters, addToast,
-    addTransaction, editTransaction, deleteTransaction 
+    addTransaction, editTransaction, deleteTransaction,
+    isDrawerOpen, setIsDrawerOpen, isOCRModalOpen, setIsOCRModalOpen,
+    editingTransactionData, setEditingTransactionData
   } = useContext(TransactionContext);
 
-  // State untuk penanganan Modal & Drawer Tambah/Edit
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isOCRModalOpen, setIsOCRModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
   // State Form Transaksi
@@ -45,27 +44,38 @@ const Transactions = () => {
     { id: 7, name: 'lainnya', type: 'pengeluaran' }
   ];
 
+  // Efek untuk menyinkronkan data form ketika drawer dibuka secara global
+  React.useEffect(() => {
+    if (isDrawerOpen) {
+      if (editingTransactionData) {
+        setEditingId(editingTransactionData.id);
+        setAmount(editingTransactionData.amount);
+        setDescription(editingTransactionData.description);
+        setType(editingTransactionData.type);
+        setCategoryId(editingTransactionData.category_id);
+        setCategoryName(editingTransactionData.category_name);
+        setDate(editingTransactionData.date.substring(0, 10));
+      } else {
+        setEditingId(null);
+        setAmount('');
+        setDescription('');
+        setType('pengeluaran');
+        setCategoryId('');
+        setCategoryName('');
+        setDate(new Date().toISOString().substring(0, 10));
+      }
+    }
+  }, [isDrawerOpen, editingTransactionData]);
+
   // Buka Drawer untuk transaksi baru
   const handleOpenAddDrawer = () => {
-    setEditingId(null);
-    setAmount('');
-    setDescription('');
-    setType('pengeluaran');
-    setCategoryId('');
-    setCategoryName('');
-    setDate(new Date().toISOString().substring(0, 10));
+    setEditingTransactionData(null);
     setIsDrawerOpen(true);
   };
 
   // Buka Drawer untuk edit transaksi
   const handleOpenEditDrawer = (tx) => {
-    setEditingId(tx.id);
-    setAmount(tx.amount);
-    setDescription(tx.description);
-    setType(tx.type);
-    setCategoryId(tx.category_id);
-    setCategoryName(tx.category_name);
-    setDate(tx.date.substring(0, 10));
+    setEditingTransactionData(tx);
     setIsDrawerOpen(true);
   };
 
@@ -204,23 +214,7 @@ const Transactions = () => {
             </button>
           )}
 
-          {/* Scanner Struk FAB */}
-          <button
-            onClick={() => setIsOCRModalOpen(true)}
-            className="flex-grow md:flex-grow-0 justify-center flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neonBlue/20 to-neonBlue/10 border border-neonBlue text-neonBlue shadow-neon-blue/20 hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
-          >
-            <Camera className="w-3.5 h-3.5 animate-pulse" />
-            Scan Struk
-          </button>
 
-          {/* TAMBAH TRANSAKSI FAB */}
-          <button
-            onClick={handleOpenAddDrawer}
-            className="flex-grow md:flex-grow-0 justify-center flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue text-white shadow-neon-purple hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Catat Manual
-          </button>
 
         </div>
       </div>

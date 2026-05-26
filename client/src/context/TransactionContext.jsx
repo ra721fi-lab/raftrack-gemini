@@ -212,6 +212,11 @@ export const TransactionProvider = ({ children }) => {
     .catch(err => addToast('Gagal mengunduh CSV', 'error'));
   };
 
+  // States untuk kontrol Drawer & OCR secara global (mempermudah pemanggilan dari Sidebar)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isOCRModalOpen, setIsOCRModalOpen] = useState(false);
+  const [editingTransactionData, setEditingTransactionData] = useState(null);
+
   return (
     <TransactionContext.Provider value={{
       transactions,
@@ -227,6 +232,12 @@ export const TransactionProvider = ({ children }) => {
       deleteTransaction,
       sendChatToAI,
       downloadCSV,
+      isDrawerOpen,
+      setIsDrawerOpen,
+      isOCRModalOpen,
+      setIsOCRModalOpen,
+      editingTransactionData,
+      setEditingTransactionData,
       refreshData: () => { fetchTransactions(); fetchStats(); }
     }}>
       {children}
