@@ -30,6 +30,20 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Terapkan rate limiter umum ke seluruh request API
 app.use('/api/', apiLimiter);
 
+// Middleware Koneksi Database Pemalas (Lazy Database Connector - Penting untuk Vercel Serverless)
+app.use(async (req, res, next) => {
+  try {
+    if (!db.getPool() && db.getDbType() === 'mysql') {
+      console.log('[Serverless Connection Hook] Menghubungkan ulang ke database MySQL cloud...');
+      await db.connectDB();
+      await initializeDatabase();
+    }
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Endpoint Tes Koneksi API
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -65,12 +79,16 @@ const startServer = async () => {
   // 2. Jalankan Auto-Migration (jika database MySQL aktif)
   await initializeDatabase();
 
-  // 3. Jalankan Listener Server Express
-  app.listen(PORT, () => {
-    console.log(`🚀 Server aktif di port: ${PORT}`);
-    console.log(`🌐 API Endpoint Kesehatan: http://localhost:${PORT}/api/health`);
-    console.log('------------------------------------------------------------\n');
-  });
+  // 3. Jalankan Listener Server Express (Hanya jika tidak di Vercel Serverless)
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server aktif di port: ${PORT}`);
+      console.log(`🌐 API Endpoint Kesehatan: http://localhost:${PORT}/api/health`);
+      console.log('------------------------------------------------------------\n');
+    });
+  }
 };
 
 startServer();
+
+module.exports = app;
