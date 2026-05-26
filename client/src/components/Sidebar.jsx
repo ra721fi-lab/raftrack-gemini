@@ -2,12 +2,16 @@ import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { ThemeContext } from '../context/ThemeContext';
 import { TransactionContext } from '../context/TransactionContext';
-import { LayoutDashboard, History, LogOut, Cpu, Sun, Moon, Camera, Plus } from 'lucide-react';
+import { PWAContext } from '../context/PWAContext';
+import { LayoutDashboard, History, LogOut, Cpu, Sun, Moon, Camera, Plus, Smartphone } from 'lucide-react';
+
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { logout, user } = useContext(AuthContext);
   const { theme, toggleTheme } = useContext(ThemeContext);
   const { setIsDrawerOpen, setIsOCRModalOpen, setEditingTransactionData } = useContext(TransactionContext);
+  const { isInstallable, installApp } = useContext(PWAContext);
+
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -45,6 +49,17 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             {user ? user.username : 'User'}
           </span>
           
+          {isInstallable && (
+            <button
+              onClick={installApp}
+              title="Pasang Aplikasi"
+              className="p-1.5 rounded-lg border border-cyanGlow/20 bg-cyanGlow/5 text-cyanGlow hover:bg-cyanGlow/10 transition-all relative cursor-pointer"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-cyanGlow" />
+              <span className="absolute top-[2px] right-[2px] w-1 h-1 rounded-full bg-cyanGlow animate-ping"></span>
+            </button>
+          )}
+
           {/* Theme Toggle Button Mobile */}
           <button
             onClick={toggleTheme}
@@ -182,6 +197,18 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
                   <Plus className="w-4 h-4 text-neonPurple group-hover:scale-110 transition-transform" />
                   <span>Catat Manual</span>
                 </button>
+
+                {/* Pasang Aplikasi Button */}
+                {isInstallable && (
+                  <button
+                    onClick={installApp}
+                    className="flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium tracking-wide text-xs text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5 hover:bg-cyanGlow/10 transition-all duration-300 group cursor-pointer animate-pulse-slow"
+                  >
+                    <Smartphone className="w-4 h-4 text-cyanGlow group-hover:scale-110 transition-transform" />
+                    <span>Pasang Aplikasi</span>
+                    <span className="ml-auto w-2 h-2 rounded-full bg-cyanGlow animate-ping"></span>
+                  </button>
+                )}
               </div>
             </div>
           </nav>

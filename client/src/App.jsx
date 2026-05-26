@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import AIChatbot from './components/AIChatbot';
 import Toast from './components/Toast';
+import PWAInstallModal from './components/PWAInstallModal';
 import { AlertCircle } from 'lucide-react';
 
 function App() {
@@ -80,6 +81,9 @@ function App() {
 
           {/* Floating AI Chatbot Assistant di pojok kanan bawah */}
           <AIChatbot />
+          
+          {/* Modal Petunjuk PWA */}
+          <PWAInstallModal />
         </div>
       )}
     </div>

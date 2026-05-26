@@ -5,15 +5,19 @@ import './index.css'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider } from './context/AuthContext'
 import { TransactionProvider } from './context/TransactionContext'
+import { PWAProvider } from './context/PWAContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ThemeProvider>
       <AuthProvider>
         <TransactionProvider>
-          <App />
+          <PWAProvider>
+            <App />
+          </PWAProvider>
         </TransactionProvider>
       </AuthProvider>
     </ThemeProvider>
   </React.StrictMode>,
 )
+
