@@ -156,7 +156,7 @@ const Transactions = () => {
       {/* HEADER CONTROL BAR (PENCARIAN, FILTER, DAN ADD BUTTON) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 glass-panel border-white/5">
         {/* Pencarian Teks */}
-        <div className="relative flex-grow max-w-md">
+        <div className="relative w-full md:max-w-xs lg:max-w-md">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
@@ -168,13 +168,13 @@ const Transactions = () => {
         </div>
 
         {/* Filters Group */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           
           {/* Filter Jenis */}
           <select
             value={filters.type}
             onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
-            className="py-2 px-3 text-xs glass-input cursor-pointer"
+            className="flex-grow md:flex-grow-0 py-2 px-3 text-xs glass-input cursor-pointer"
           >
             <option value="">Semua Aliran</option>
             <option value="pemasukan">Pemasukan (+)</option>
@@ -185,7 +185,7 @@ const Transactions = () => {
           <select
             value={filters.category_id}
             onChange={(e) => setFilters(prev => ({ ...prev, category_id: e.target.value }))}
-            className="py-2 px-3 text-xs glass-input cursor-pointer capitalize"
+            className="flex-grow md:flex-grow-0 py-2 px-3 text-xs glass-input cursor-pointer capitalize"
           >
             <option value="">Semua Kategori</option>
             {defaultCategories.map(c => (
@@ -207,7 +207,7 @@ const Transactions = () => {
           {/* Scanner Struk FAB */}
           <button
             onClick={() => setIsOCRModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neonBlue/20 to-neonBlue/10 border border-neonBlue text-neonBlue shadow-neon-blue/20 hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
+            className="flex-grow md:flex-grow-0 justify-center flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neonBlue/20 to-neonBlue/10 border border-neonBlue text-neonBlue shadow-neon-blue/20 hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
           >
             <Camera className="w-3.5 h-3.5 animate-pulse" />
             Scan Struk
@@ -216,7 +216,7 @@ const Transactions = () => {
           {/* TAMBAH TRANSAKSI FAB */}
           <button
             onClick={handleOpenAddDrawer}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue text-white shadow-neon-purple hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
+            className="flex-grow md:flex-grow-0 justify-center flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue text-white shadow-neon-purple hover:scale-102 active:scale-95 transition-all text-xs font-mono font-bold uppercase"
           >
             <Plus className="w-3.5 h-3.5" />
             Catat Manual
@@ -239,78 +239,142 @@ const Transactions = () => {
             <p className="text-[10px] text-slate-600 mt-1">Harap sesuaikan filter pencarian atau buat transaksi baru.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/5 bg-white/5 text-[9px] font-bold tracking-widest text-slate-400 font-mono uppercase">
-                  <th className="p-4 pl-6">Alur & Kategori</th>
-                  <th className="p-4">Tanggal</th>
-                  <th className="p-4">Deskripsi</th>
-                  <th className="p-4 text-right">Nominal</th>
-                  <th className="p-4 text-center pr-6">Tindakan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-xs text-slate-200">
-                {transactions.map((tx) => {
-                  const isIncome = tx.type === 'pemasukan';
-                  
-                  return (
-                    <tr key={tx.id} className="hover:bg-white/5 transition-colors duration-200">
-                      
-                      {/* Alur & Kategori */}
-                      <td className="p-4 pl-6 flex items-center gap-3">
+          <>
+            {/* Tampilan Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/5 text-[9px] font-bold tracking-widest text-slate-400 font-mono uppercase">
+                    <th className="p-4 pl-6">Alur & Kategori</th>
+                    <th className="p-4">Tanggal</th>
+                    <th className="p-4">Deskripsi</th>
+                    <th className="p-4 text-right">Nominal</th>
+                    <th className="p-4 text-center pr-6">Tindakan</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 text-xs text-slate-200">
+                  {transactions.map((tx) => {
+                    const isIncome = tx.type === 'pemasukan';
+                    
+                    return (
+                      <tr key={tx.id} className="hover:bg-white/5 transition-colors duration-200">
+                        
+                        {/* Alur & Kategori */}
+                        <td className="p-4 pl-6 flex items-center gap-3">
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: tx.category_color, boxShadow: `0 0 8px ${tx.category_color}` }}
+                          ></div>
+                          <span className="capitalize font-medium tracking-wide">
+                            {tx.category_name}
+                          </span>
+                        </td>
+
+                        {/* Tanggal */}
+                        <td className="p-4 font-mono text-slate-400">
+                          {tx.date.substring(0, 10)}
+                        </td>
+
+                        {/* Deskripsi */}
+                        <td className="p-4 font-medium text-slate-300 max-w-[200px] truncate">
+                          {tx.description || <span className="text-slate-600 italic">Tanpa deskripsi</span>}
+                        </td>
+
+                        {/* Nominal */}
+                        <td className={`p-4 text-right font-mono font-bold ${
+                          isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
+                        }`}>
+                          {isIncome ? '+' : '-'} {formatIDR(tx.amount)}
+                        </td>
+
+                        {/* Tindakan (Edit / Hapus) */}
+                        <td className="p-4 text-center pr-6">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleOpenEditDrawer(tx)}
+                              title="Edit Transaksi"
+                              className="p-1.5 rounded-lg border border-white/5 hover:border-white/20 text-slate-400 hover:text-white transition-all hover:scale-105 active:scale-95"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => deleteTransaction(tx.id)}
+                              title="Hapus Transaksi"
+                              className="p-1.5 rounded-lg border border-white/5 hover:border-neonRed/20 hover:bg-neonRed/5 text-slate-400 hover:text-neonRed transition-all hover:scale-105 active:scale-95"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Tampilan Mobile Card List (Khusus HP) */}
+            <div className="lg:hidden flex flex-col divide-y divide-white/5">
+              {transactions.map((tx) => {
+                const isIncome = tx.type === 'pemasukan';
+                
+                return (
+                  <div key={tx.id} className="p-4 flex flex-col gap-3 hover:bg-white/5 transition-all duration-200">
+                    {/* Baris Pertama: Kategori Badge & Nominal */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {/* Category Dot */}
                         <div 
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: tx.category_color, boxShadow: `0 0 8px ${tx.category_color}` }}
+                          className="w-2 h-2 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: tx.category_color, boxShadow: `0 0 6px ${tx.category_color}` }}
                         ></div>
-                        <span className="capitalize font-medium tracking-wide">
+                        <span className="capitalize font-mono text-[9px] font-bold tracking-wider text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                           {tx.category_name}
                         </span>
-                      </td>
-
-                      {/* Tanggal */}
-                      <td className="p-4 font-mono text-slate-400">
-                        {tx.date.substring(0, 10)}
-                      </td>
-
-                      {/* Deskripsi */}
-                      <td className="p-4 font-medium text-slate-300 max-w-[200px] truncate">
-                        {tx.description || <span className="text-slate-600 italic">Tanpa deskripsi</span>}
-                      </td>
-
-                      {/* Nominal */}
-                      <td className={`p-4 text-right font-mono font-bold ${
+                      </div>
+                      <span className={`text-sm font-bold font-mono ${
                         isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
                       }`}>
                         {isIncome ? '+' : '-'} {formatIDR(tx.amount)}
-                      </td>
+                      </span>
+                    </div>
 
-                      {/* Tindakan (Edit / Hapus) */}
-                      <td className="p-4 text-center pr-6">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleOpenEditDrawer(tx)}
-                            title="Edit Transaksi"
-                            className="p-1.5 rounded-lg border border-white/5 hover:border-white/20 text-slate-400 hover:text-white transition-all hover:scale-105 active:scale-95"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => deleteTransaction(tx.id)}
-                            title="Hapus Transaksi"
-                            className="p-1.5 rounded-lg border border-white/5 hover:border-neonRed/20 hover:bg-neonRed/5 text-slate-400 hover:text-neonRed transition-all hover:scale-105 active:scale-95"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
+                    {/* Baris Kedua: Deskripsi */}
+                    <p className="text-xs font-semibold text-slate-200 leading-tight">
+                      {tx.description || <span className="text-slate-600 italic">Tanpa deskripsi</span>}
+                    </p>
 
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    {/* Baris Ketiga: Tanggal & Aksi Sentuh */}
+                    <div className="flex items-center justify-between mt-1 text-[10px] text-slate-500 font-mono">
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3 h-3 text-slate-500" />
+                        {tx.date.substring(0, 10)}
+                      </span>
+                      
+                      {/* Aksi Ubah / Hapus */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenEditDrawer(tx)}
+                          className="flex items-center gap-1 py-1 px-2.5 rounded-lg border border-white/5 bg-white/5 text-slate-300 active:bg-white/10 transition-colors"
+                        >
+                          <Edit2 className="w-2.5 h-2.5 text-neonBlue" />
+                          <span>Ubah</span>
+                        </button>
+                        <button
+                          onClick={() => deleteTransaction(tx.id)}
+                          className="flex items-center gap-1 py-1 px-2.5 rounded-lg border border-neonRed/10 bg-neonRed/5 text-neonRed active:bg-neonRed/10 transition-colors"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                          <span>Hapus</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
@@ -323,7 +387,7 @@ const Transactions = () => {
           
           {/* Drawer Body Panel */}
           <div 
-            className="glass-panel border-l border-white/10 rounded-r-none w-full max-w-md h-full flex flex-col justify-between p-6 z-10 animate-slide-in relative"
+            className="glass-panel border-l border-white/10 rounded-r-none w-full sm:max-w-md h-full flex flex-col justify-between p-5 sm:p-6 z-10 animate-slide-in relative"
             style={{ boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)' }}
           >
             {/* Drawer Header */}

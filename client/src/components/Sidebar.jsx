@@ -1,41 +1,51 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { LayoutDashboard, History, LogOut, Cpu, Compass } from 'lucide-react';
+import { LayoutDashboard, History, LogOut, Cpu } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { logout, user } = useContext(AuthContext);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard AI', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Riwayat Finansial', icon: History }
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'transactions', label: 'Riwayat', icon: History }
   ];
 
   return (
-    <aside className="w-full lg:w-64 p-4 lg:p-6 lg:h-screen lg:sticky lg:top-0 flex flex-col justify-between z-40">
-      {/* Container utama dengan efek glassmorphism melayang */}
-      <div className="glass-panel border-white/5 h-full flex flex-row lg:flex-col justify-between items-center lg:items-stretch p-4 lg:p-6 w-full gap-4 lg:gap-8">
-        
-        {/* LOGO & BRANDING */}
-        <div className="flex items-center gap-3 lg:mb-4">
-          <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue shadow-neon-purple p-[1px]">
-            <div className="w-full h-full bg-darkSpace-900 rounded-[11px] flex items-center justify-center">
-              <Cpu className="w-5 h-5 text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple" />
+    <>
+      {/* ========================================================
+         1. MOBILE HEADER & BOTTOM NAV (UNTUK HP)
+         ======================================================== */}
+      {/* Mobile Top Header (Sticky Top) */}
+      <div className="lg:hidden w-full flex items-center justify-between p-4 glass-panel border-white/5 rounded-b-2xl rounded-t-none sticky top-0 z-40 backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-tr from-neonPurple to-neonBlue p-[1px]">
+            <div className="w-full h-full bg-darkSpace-900 rounded-[7px] flex items-center justify-center">
+              <Cpu className="w-4 h-4 text-neonBlue" />
             </div>
-            {/* Ambient pulse effect behind logo */}
-            <div className="absolute -inset-1 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue opacity-30 blur-sm animate-pulse-slow"></div>
           </div>
-          <div className="hidden sm:block">
-            <h1 className="text-md font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple font-mono">
-              RAFTRACK
-            </h1>
-            <p className="text-[9px] tracking-widest text-cyanGlow font-mono font-semibold uppercase">
-              GEMINI PRO v2
-            </p>
-          </div>
+          <span className="text-xs font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple font-mono">
+            RAFTRACK
+          </span>
         </div>
 
-        {/* MENU TABS */}
-        <nav className="flex flex-row lg:flex-col gap-2 lg:gap-3 flex-grow lg:justify-start justify-center">
+        {/* User initials & Logout on Mobile */}
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-mono text-slate-400 capitalize truncate max-w-[80px]">
+            {user ? user.username : 'User'}
+          </span>
+          <button
+            onClick={logout}
+            title="Keluar"
+            className="p-1.5 rounded-lg border border-neonRed/20 bg-neonRed/5 text-neonRed hover:bg-neonRed/10 transition-all"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar (Floating Pill) */}
+      <div className="lg:hidden fixed bottom-4 left-4 right-4 z-40">
+        <div className="glass-panel border-white/10 bg-darkSpace-800/80 backdrop-blur-lg rounded-2xl flex justify-around items-center p-2.5 shadow-2xl">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -44,54 +54,107 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium tracking-wide text-sm transition-all duration-300 relative overflow-hidden group ${
-                  isActive
-                    ? 'text-white border-white/10 bg-white/5 shadow-inner'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border-transparent'
-                } border`}
+                className={`flex flex-col items-center justify-center gap-1.5 py-1 px-5 rounded-xl transition-all duration-300 relative ${
+                  isActive 
+                    ? 'text-neonBlue' 
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
               >
-                {/* Active Indicator Glow */}
-                {isActive && (
-                  <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-neonBlue to-neonPurple shadow-neon-blue"></span>
-                )}
-                
-                <Icon className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
-                  isActive ? 'text-neonBlue neon-text-blue' : 'text-slate-400'
+                <Icon className={`w-5 h-5 transition-transform duration-300 ${
+                  isActive ? 'scale-110 text-neonBlue neon-text-blue' : ''
                 }`} />
+                <span className="text-[10px] font-medium tracking-wider">{item.label}</span>
                 
-                <span className="hidden lg:inline">{item.label}</span>
+                {/* Glowing Dot Indicator under active button */}
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-neonBlue shadow-neon-blue absolute bottom-[-4px]"></span>
+                )}
               </button>
             );
           })}
-        </nav>
+        </div>
+      </div>
 
-        {/* PROFILE & LOGOUT SECTION */}
-        <div className="flex lg:flex-col items-center lg:items-stretch gap-4 border-l lg:border-l-0 lg:border-t border-white/5 pl-4 lg:pl-0 lg:pt-4 w-auto lg:w-full">
-          {/* User profile (Desktop only) */}
-          <div className="hidden lg:flex items-center gap-3 mb-3 px-2">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-r from-neonBlue to-neonPurple p-[1px] shadow-neon-blue flex-shrink-0">
-              <div className="w-full h-full rounded-full bg-darkSpace-800 flex items-center justify-center font-bold text-xs text-white">
-                {user ? user.username.substring(0, 2).toUpperCase() : 'US'}
+      {/* ========================================================
+         2. DESKTOP SIDEBAR (UNTUK TABLET & LAPTOP)
+         ======================================================== */}
+      <aside className="hidden lg:flex w-64 p-6 h-screen sticky top-0 flex-col justify-between z-40">
+        <div className="glass-panel border-white/5 h-full flex flex-col justify-between items-stretch p-6 gap-8">
+          
+          {/* Logo & Branding */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue shadow-neon-purple p-[1px]">
+              <div className="w-full h-full bg-darkSpace-900 rounded-[10px] flex items-center justify-center">
+                <Cpu className="w-4.5 h-4.5 text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple" />
               </div>
+              <div className="absolute -inset-1 rounded-xl bg-gradient-to-tr from-neonPurple to-neonBlue opacity-20 blur-xs animate-pulse-slow"></div>
             </div>
-            <div className="min-w-0 flex-grow">
-              <p className="text-xs font-semibold text-slate-200 truncate">{user ? user.username : 'User'}</p>
-              <p className="text-[10px] text-slate-500 truncate">{user ? user.email : 'user@fintech.ai'}</p>
+            <div>
+              <h1 className="text-sm font-bold tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-neonBlue to-neonPurple font-mono">
+                RAFTRACK
+              </h1>
+              <p className="text-[8px] tracking-widest text-cyanGlow font-mono font-semibold uppercase">
+                GEMINI AI
+              </p>
             </div>
           </div>
 
-          {/* Logout Button */}
-          <button
-            onClick={logout}
-            className="flex items-center justify-center lg:justify-start gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold text-neonRed border border-transparent hover:border-neonRed/20 hover:bg-neonRed/10 transition-all duration-300 w-full group"
-          >
-            <LogOut className="w-4 h-4 text-neonRed group-hover:translate-x-0.5 transition-transform" />
-            <span className="hidden lg:inline">Keluar Sistem</span>
-          </button>
-        </div>
+          {/* Menu Items list */}
+          <nav className="flex flex-col gap-2.5 flex-grow justify-start">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-medium tracking-wide text-xs transition-all duration-300 relative overflow-hidden group ${
+                    isActive
+                      ? 'text-white bg-white/5 shadow-inner'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border-transparent'
+                  } border border-transparent`}
+                >
+                  {isActive && (
+                    <span className="absolute left-0 top-0 bottom-0 w-[2px] bg-gradient-to-b from-neonBlue to-neonPurple shadow-neon-blue"></span>
+                  )}
+                  
+                  <Icon className={`w-4 h-4 transition-transform duration-300 group-hover:scale-110 ${
+                    isActive ? 'text-neonBlue neon-text-blue' : 'text-slate-400'
+                  }`} />
+                  
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-      </div>
-    </aside>
+          {/* User profile & Logout */}
+          <div className="flex flex-col items-stretch gap-4 border-t border-white/5 pt-4">
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neonBlue to-neonPurple p-[1px] shadow-neon-blue flex-shrink-0">
+                <div className="w-full h-full rounded-full bg-darkSpace-800 flex items-center justify-center font-bold text-xs text-white">
+                  {user ? user.username.substring(0, 2).toUpperCase() : 'US'}
+                </div>
+              </div>
+              <div className="min-w-0 flex-grow">
+                <p className="text-xs font-semibold text-slate-200 truncate">{user ? user.username : 'User'}</p>
+                <p className="text-[9px] text-slate-500 truncate">{user ? user.email : 'user@fintech.ai'}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={logout}
+              className="flex items-center justify-center gap-2.5 px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider text-neonRed border border-transparent hover:border-neonRed/20 hover:bg-neonRed/5 transition-all duration-300 group"
+            >
+              <LogOut className="w-3.5 h-3.5 text-neonRed group-hover:translate-x-0.5 transition-transform" />
+              <span>Keluar Sistem</span>
+            </button>
+          </div>
+
+        </div>
+      </aside>
+    </>
   );
 };
 

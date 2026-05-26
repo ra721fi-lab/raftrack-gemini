@@ -33,7 +33,7 @@ const Login = ({ onNavigateToRegister }) => {
     <div className="w-full max-w-md font-sans">
       {/* Container utama dengan efek glassmorphism melayang */}
       <div 
-        className="glass-panel border-white/5 p-8 flex flex-col items-center relative overflow-hidden"
+        className="glass-panel border-white/5 p-6 sm:p-8 flex flex-col items-center relative overflow-hidden"
         style={{ boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5)' }}
       >
         {/* Glow ambient decoration inside card */}

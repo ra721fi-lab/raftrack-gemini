@@ -44,7 +44,7 @@ const Header = () => {
   };
 
   return (
-    <header className="w-full mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 glass-panel border-white/5">
+    <header className="hidden lg:flex w-full mb-6 flex-row items-center justify-between gap-4 p-4 glass-panel border-white/5">
       {/* KIRI: Sapaan User & Tanggal */}
       <div>
         <p className="text-xs font-mono text-neonBlue tracking-widest uppercase">

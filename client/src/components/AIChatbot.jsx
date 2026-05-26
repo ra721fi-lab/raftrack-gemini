@@ -72,28 +72,30 @@ const AIChatbot = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 font-sans">
+    <div className="font-sans">
       
       {/* FLOATING ACTION TRIGGER BUTTON */}
       {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="relative flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-tr from-neonPurple to-neonBlue shadow-neon-purple text-white hover:scale-105 transition-transform duration-300 group"
-        >
-          <div className="absolute inset-0.5 rounded-full bg-darkSpace-900 flex items-center justify-center">
-            <Cpu className="w-6 h-6 text-neonBlue group-hover:rotate-12 transition-transform duration-500 neon-text-blue" />
-          </div>
-          {/* Sparkles glow */}
-          <Sparkles className="absolute top-0 right-0 w-4 h-4 text-cyanGlow animate-pulse" />
-          {/* Ambient border glow pulse */}
-          <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-neonPurple to-neonBlue opacity-30 blur animate-pulse-slow"></span>
-        </button>
+        <div className="fixed bottom-20 right-4 lg:bottom-6 lg:right-6 z-50">
+          <button
+            onClick={() => setIsOpen(true)}
+            className="relative flex items-center justify-center w-12 h-12 lg:w-14 lg:h-14 rounded-full bg-gradient-to-tr from-neonPurple to-neonBlue shadow-neon-purple text-white hover:scale-105 transition-transform duration-300 group"
+          >
+            <div className="absolute inset-0.5 rounded-full bg-darkSpace-900 flex items-center justify-center">
+              <Cpu className="w-5 h-5 lg:w-6 lg:h-6 text-neonBlue group-hover:rotate-12 transition-transform duration-500 neon-text-blue" />
+            </div>
+            {/* Sparkles glow */}
+            <Sparkles className="absolute top-0 right-0 w-3.5 h-3.5 lg:w-4 lg:h-4 text-cyanGlow animate-pulse" />
+            {/* Ambient border glow pulse */}
+            <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-neonPurple to-neonBlue opacity-30 blur animate-pulse-slow"></span>
+          </button>
+        </div>
       )}
 
       {/* CHAT WINDOW INTERFACE */}
       {isOpen && (
         <div 
-          className="glass-panel w-[350px] sm:w-[380px] h-[500px] flex flex-col border-neonPurple/30 shadow-neon-purple"
+          className="fixed bottom-[80px] right-4 left-4 sm:left-auto sm:right-6 sm:bottom-24 sm:w-[380px] h-[460px] sm:h-[500px] z-50 glass-panel flex flex-col border-neonPurple/30 shadow-neon-purple"
           style={{ boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)' }}
         >
           {/* HEADER */}

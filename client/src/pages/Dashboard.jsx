@@ -54,7 +54,7 @@ const Dashboard = ({ setActiveTab }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         
         {/* TOTAL SALDO */}
-        <div className="glass-panel border-neonBlue/20 p-5 relative overflow-hidden group">
+        <div className="glass-panel border-neonBlue/20 p-4 sm:p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-neonBlue/5 rounded-full filter blur-lg transition-all group-hover:bg-neonBlue/10"></div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase font-mono">SALDO REAL-TIME</span>
@@ -72,7 +72,7 @@ const Dashboard = ({ setActiveTab }) => {
         </div>
 
         {/* TOTAL PEMASUKAN */}
-        <div className="glass-panel border-cyanGlow/20 p-5 relative overflow-hidden group">
+        <div className="glass-panel border-cyanGlow/20 p-4 sm:p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-cyanGlow/5 rounded-full filter blur-lg transition-all group-hover:bg-cyanGlow/10"></div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase font-mono">TOTAL PEMASUKAN</span>
@@ -89,7 +89,7 @@ const Dashboard = ({ setActiveTab }) => {
         </div>
 
         {/* TOTAL PENGELUARAN */}
-        <div className="glass-panel border-neonRed/20 p-5 relative overflow-hidden group">
+        <div className="glass-panel border-neonRed/20 p-4 sm:p-5 relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-neonRed/5 rounded-full filter blur-lg transition-all group-hover:bg-neonRed/10"></div>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase font-mono">TOTAL PENGELUARAN</span>
@@ -111,7 +111,7 @@ const Dashboard = ({ setActiveTab }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
         {/* CHART 1: AREA CHART BULANAN (2/3 LEBAR) */}
-        <div className="glass-panel p-5 border-white/5 lg:col-span-2 flex flex-col justify-between">
+        <div className="glass-panel p-4 sm:p-5 border-white/5 lg:col-span-2 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-neonBlue" />
@@ -122,7 +122,7 @@ const Dashboard = ({ setActiveTab }) => {
             </span>
           </div>
 
-          <div className="w-full h-64 mt-2">
+          <div className="w-full h-56 sm:h-64 mt-2">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
@@ -151,7 +151,7 @@ const Dashboard = ({ setActiveTab }) => {
         </div>
 
         {/* CHART 2: PIE CHART KATEGORI (1/3 LEBAR) */}
-        <div className="glass-panel p-5 border-white/5 flex flex-col justify-between">
+        <div className="glass-panel p-4 sm:p-5 border-white/5 flex flex-col justify-between">
           <div className="flex items-center gap-2 mb-4">
             <Cpu className="w-4 h-4 text-neonPurple" />
             <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">Alokasi Kategori AI</h4>
@@ -205,7 +205,7 @@ const Dashboard = ({ setActiveTab }) => {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
         {/* KIRI: AI INSIGHT & REKOMENDASI (2/5 LEBAR) */}
-        <div className="glass-panel p-5 border-white/5 lg:col-span-2 flex flex-col gap-4">
+        <div className="glass-panel p-4 sm:p-5 border-white/5 lg:col-span-2 flex flex-col gap-4">
           <div className="flex items-center gap-2 border-b border-white/5 pb-3">
             <Sparkles className="w-4 h-4 text-cyanGlow neon-text-cyan animate-pulse" />
             <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">AI Finance Advisory</h4>
@@ -268,7 +268,7 @@ const Dashboard = ({ setActiveTab }) => {
         </div>
 
         {/* KANAN: TRANSAKSI TERBARU & QUICK ACTIONS (3/5 LEBAR) */}
-        <div className="glass-panel p-5 border-white/5 lg:col-span-3 flex flex-col justify-between gap-4">
+        <div className="glass-panel p-4 sm:p-5 border-white/5 lg:col-span-3 flex flex-col justify-between gap-4">
           
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">Riwayat Aktivitas Terbaru</h4>
