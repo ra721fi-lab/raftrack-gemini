@@ -95,17 +95,17 @@ const AIChatbot = () => {
       {/* CHAT WINDOW INTERFACE */}
       {isOpen && (
         <div 
-          className="fixed bottom-[80px] right-4 left-4 sm:left-auto sm:right-6 sm:bottom-24 sm:w-[380px] h-[460px] sm:h-[500px] z-50 glass-panel flex flex-col border-neonPurple/30 shadow-neon-purple"
-          style={{ boxShadow: '0 12px 40px rgba(0, 0, 0, 0.6)' }}
+          className="fixed bottom-[80px] right-4 left-4 sm:left-auto sm:right-6 sm:bottom-24 sm:w-[380px] h-[460px] sm:h-[500px] z-50 glass-panel flex flex-col border-slate-200 dark:border-neonPurple/30 shadow-2xl dark:shadow-neon-purple overflow-hidden"
+          style={{ boxShadow: '0 12px 40px rgba(0, 0, 0, 0.25)' }}
         >
           {/* HEADER */}
-          <div className="flex items-center justify-between p-4 border-b border-white/5 bg-gradient-to-r from-neonPurple/10 to-neonBlue/10 rounded-t-2xl">
+          <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-darkSpace-800 rounded-t-2xl">
             <div className="flex items-center gap-2.5">
               <div className="relative w-8 h-8 rounded-lg bg-neonBlue/10 border border-neonBlue/30 flex items-center justify-center">
                 <Cpu className="w-4 h-4 text-neonBlue neon-text-blue animate-pulse" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-100 tracking-wide font-mono">GEMINI INSIGHT AGENT</h3>
+                <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 tracking-wide font-mono">GEMINI INSIGHT AGENT</h3>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-cyanGlow animate-ping"></span>
                   <span className="text-[10px] font-mono text-cyanGlow font-semibold uppercase">READY_TO_ADVISE</span>
@@ -115,14 +115,14 @@ const AIChatbot = () => {
             
             <button 
               onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+              className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-white/5 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* MESSAGES LOG */}
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin">
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 scrollbar-thin bg-white/20 dark:bg-transparent">
             {messages.map((msg) => {
               const isAi = msg.sender === 'ai';
               return (
@@ -133,14 +133,14 @@ const AIChatbot = () => {
                   <div 
                     className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed ${
                       isAi 
-                        ? 'bg-darkSpace-800/80 border border-white/5 text-slate-200 rounded-tl-sm'
-                        : 'bg-gradient-to-r from-neonPurple/30 to-neonBlue/30 border border-neonBlue/20 text-white rounded-tr-sm'
+                        ? 'bg-slate-100 dark:bg-darkSpace-800/80 border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm'
+                        : 'bg-gradient-to-r from-neonPurple/85 to-neonBlue/85 dark:from-neonPurple/30 dark:to-neonBlue/30 border border-neonBlue/30 text-white rounded-tr-sm text-white-keep'
                     }`}
                   >
                     {renderText(msg.text)}
                     
                     {/* Timestamp */}
-                    <p className="text-[9px] text-slate-500 font-mono mt-1 text-right">
+                    <p className={`text-[9px] font-mono mt-1 text-right ${isAi ? 'text-slate-400 dark:text-slate-500' : 'text-white/70'}`}>
                       {new Date(msg.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
@@ -151,7 +151,7 @@ const AIChatbot = () => {
             {/* TYPING LOADER DOTS */}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-darkSpace-800/80 border border-white/5 rounded-2xl px-4 py-3 rounded-tl-sm flex gap-1.5 items-center">
+                <div className="bg-slate-100 dark:bg-darkSpace-800/80 border border-slate-200 dark:border-white/5 rounded-2xl px-4 py-3 rounded-tl-sm flex gap-1.5 items-center">
                   <span className="w-1.5 h-1.5 rounded-full bg-neonBlue animate-bounce" style={{ animationDelay: '0ms' }}></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-neonPurple animate-bounce" style={{ animationDelay: '150ms' }}></span>
                   <span className="w-1.5 h-1.5 rounded-full bg-cyanGlow animate-bounce" style={{ animationDelay: '300ms' }}></span>
@@ -165,21 +165,21 @@ const AIChatbot = () => {
           {/* INPUT MESSAGE PANEL */}
           <form 
             onSubmit={handleSendMessage}
-            className="p-3 border-t border-white/5 bg-darkSpace-900/60 flex items-center gap-2 rounded-b-2xl"
+            className="p-3 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-darkSpace-900/60 flex items-center gap-2 rounded-b-2xl"
           >
             <input
               type="text"
               placeholder="Tanyakan analisis keuangan..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-grow py-2 px-3 text-xs glass-input focus:border-neonPurple focus:shadow-neon-purple"
+              className="flex-grow py-2 px-3 text-xs glass-input focus:border-neonPurple focus:shadow-neon-purple dark:bg-darkSpace-800/60"
             />
             <button
               type="submit"
               disabled={!inputValue.trim() || isTyping}
               className="w-8 h-8 rounded-lg bg-gradient-to-tr from-neonPurple to-neonBlue flex items-center justify-center text-white shadow-neon-blue hover:scale-105 active:scale-95 disabled:scale-100 disabled:opacity-40 transition-all duration-300"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3.5 h-3.5 text-white-keep" />
             </button>
           </form>
         </div>
