@@ -1,9 +1,11 @@
 import React, { useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { LayoutDashboard, History, LogOut, Cpu } from 'lucide-react';
+import { ThemeContext } from '../context/ThemeContext';
+import { LayoutDashboard, History, LogOut, Cpu, Sun, Moon } from 'lucide-react';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const { logout, user } = useContext(AuthContext);
+  const { theme, toggleTheme } = useContext(ThemeContext);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,11 +30,21 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           </span>
         </div>
 
-        {/* User initials & Logout on Mobile */}
-        <div className="flex items-center gap-3">
+        {/* User initials & Toggle Theme & Logout on Mobile */}
+        <div className="flex items-center gap-2.5">
           <span className="text-[10px] font-mono text-slate-400 capitalize truncate max-w-[80px]">
             {user ? user.username : 'User'}
           </span>
+          
+          {/* Theme Toggle Button Mobile */}
+          <button
+            onClick={toggleTheme}
+            title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+            className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-slate-200 transition-all"
+          >
+            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-neonBlue" /> : <Moon className="w-3.5 h-3.5 text-neonPurple" />}
+          </button>
+
           <button
             onClick={logout}
             title="Keluar"
@@ -131,16 +143,27 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 
           {/* User profile & Logout */}
           <div className="flex flex-col items-stretch gap-4 border-t border-white/5 pt-4">
-            <div className="flex items-center gap-3 px-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neonBlue to-neonPurple p-[1px] shadow-neon-blue flex-shrink-0">
-                <div className="w-full h-full rounded-full bg-darkSpace-800 flex items-center justify-center font-bold text-xs text-white">
-                  {user ? user.username.substring(0, 2).toUpperCase() : 'US'}
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neonBlue to-neonPurple p-[1px] shadow-neon-blue flex-shrink-0">
+                  <div className="w-full h-full rounded-full bg-darkSpace-800 flex items-center justify-center font-bold text-xs text-white">
+                    {user ? user.username.substring(0, 2).toUpperCase() : 'US'}
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-slate-200 truncate">{user ? user.username : 'User'}</p>
+                  <p className="text-[9px] text-slate-500 truncate">{user ? user.email : 'user@fintech.ai'}</p>
                 </div>
               </div>
-              <div className="min-w-0 flex-grow">
-                <p className="text-xs font-semibold text-slate-200 truncate">{user ? user.username : 'User'}</p>
-                <p className="text-[9px] text-slate-500 truncate">{user ? user.email : 'user@fintech.ai'}</p>
-              </div>
+              
+              {/* Theme Toggle Button Desktop */}
+              <button
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+                className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-slate-400 hover:text-slate-200 transition-all ml-2"
+              >
+                {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-neonBlue" /> : <Moon className="w-3.5 h-3.5 text-neonPurple" />}
+              </button>
             </div>
 
             <button

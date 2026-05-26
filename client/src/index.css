@@ -180,3 +180,83 @@ input:-webkit-autofill:focus {
 .animate-slide-in {
   animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* ========================================================
+   LIGHT THEME OVERRIDES (SIMPEL MODERN)
+   ======================================================== */
+html:not(.dark) body {
+  background-color: #f3f4f6;
+  background-image: 
+    radial-gradient(at 10% 20%, rgba(185, 43, 255, 0.03) 0px, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(0, 242, 254, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 80%, rgba(0, 255, 135, 0.02) 0px, transparent 50%);
+  color: #1f2937;
+}
+
+html:not(.dark) .glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.06);
+}
+
+html:not(.dark) .glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 32px 0 rgba(0, 242, 254, 0.12);
+}
+
+html:not(.dark) .glass-input {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #111827;
+}
+
+html:not(.dark) .glass-input:focus {
+  border-color: #00f2fe;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+/* Text & BG Specific Overrides for Light Mode */
+html:not(.dark) .text-slate-100,
+html:not(.dark) .text-slate-200,
+html:not(.dark) .text-slate-300,
+html:not(.dark) .text-white {
+  color: #1f2937 !important;
+}
+
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500 {
+  color: #4b5563 !important;
+}
+
+html:not(.dark) .text-slate-600 {
+  color: #9ca3af !important;
+}
+
+html:not(.dark) .bg-darkSpace-900,
+html:not(.dark) .bg-darkSpace-800,
+html:not(.dark) .bg-black\/30,
+html:not(.dark) .bg-black\/40,
+html:not(.dark) .bg-black\/10,
+html:not(.dark) .bg-black\/20 {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+html:not(.dark) .border-white\/5,
+html:not(.dark) .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html:not(.dark) .bg-white\/5 {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+}
+
+html:not(.dark) .hover:bg-white\/5:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+html:not(.dark) select option {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
