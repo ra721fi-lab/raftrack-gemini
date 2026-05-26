@@ -5,7 +5,9 @@ require('dotenv').config();
 
 let pool = null;
 let dbType = 'mysql'; // 'mysql' atau 'lokadata'
-const LOKADATA_FILE = path.join(__dirname, '../models/lokadata.json');
+const LOKADATA_FILE = process.env.VERCEL === '1'
+  ? '/tmp/lokadata.json'
+  : path.join(__dirname, '../models/lokadata.json');
 
 // Banner visual untuk log terminal
 function printBanner(title, messages, isError = false) {
