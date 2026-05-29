@@ -320,7 +320,88 @@ Apakah Anda ingin saya memberikan saran penghematan anggaran, menganalisis kateg
   }
 };
 
+// @desc    Proses Pemindaian Struk Belanja dengan Gemini Multimodal AI OCR
+// @route   POST /api/analytics/ocr
+// @access  Private
+const handleReceiptOCR = async (req, res, next) => {
+  try {
+    const { image, mimeType } = req.body;
+
+    if (!image || !mimeType) {
+      res.status(400);
+      throw new Error('Harap sertakan gambar struk terenkripsi Base64 dan tipe mimeType dokumen');
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    // Fallback Simulator Cerdas jika API Key tidak terpasang
+    if (!apiKey) {
+      const randomAmount = Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000;
+      return res.status(200).json({
+        success: true,
+        source: 'fallback',
+        data: {
+          merchant: 'Struk Retail Offline',
+          amount: randomAmount,
+          date: new Date().toISOString().substring(0, 10),
+          category: 'makanan',
+          description: 'Belanja Offline (Mode Fallback Tanpa AI Key)',
+          items: ['1x Produk Belanja Terdeteksi', '1x Pajak PPN 11%']
+        }
+      });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Anda adalah sistem AI OCR handal khusus struk belanja / nota retail.
+Tugas Anda adalah memproses gambar struk belanja terlampir, membaca seluruh isinya, dan mengekstrak rincian nota belanja tersebut secara akurat.
+Kembalikan hasil ekstraksi dalam format JSON mentah tanpa format pembungkus markdown (tanpa pembungkus \`\`\`json).
+
+Format JSON wajib berisi struktur berikut:
+{
+  "merchant": "Nama toko / merchant (contoh: 'Alfamart', 'Indomaret', 'Starbucks', dll. Bersihkan dari simbol aneh)",
+  "amount": Total nominal bersih pembayaran akhir yang dibayarkan pelanggan (harus berupa tipe angka/number bulat, contoh: 88000),
+  "date": "Tanggal transaksi dalam format YYYY-MM-DD (jika tanggal di struk kabur atau tidak terbaca, gunakan tanggal hari ini: ${new Date().toISOString().substring(0, 10)})",
+  "category": "Kategori finansial yang paling cocok. Pilih salah satu dari: 'makanan', 'transportasi', 'tagihan', 'hiburan', 'investasi', 'lainnya'",
+  "description": "Deskripsi transaksi ringkas buatan Anda (contoh: 'Belanja di Indomaret')",
+  "items": ["Daftar item belanjaan maksimal 3 item utama dalam format string 'Qtyx NamaItem', contoh: '1x Kopi Latte'"]
+}`;
+
+    const cleanBase64 = image.includes('base64,') ? image.split('base64,')[1] : image;
+    
+    // Gemini multimodal requires part object format
+    const imagePart = {
+      inlineData: {
+        data: cleanBase64,
+        mimeType
+      }
+    };
+
+    const result = await model.generateContent([prompt, imagePart]);
+    const responseText = result.response.text().trim();
+
+    let parsedData;
+    try {
+      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsedData = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      console.error('[Gemini OCR Parsing Error]:', parseErr, 'Response Text:', responseText);
+      throw new Error('Gagal mengekstrak teks nota dari Gemini AI. Format struk mungkin tidak didukung.');
+    }
+
+    res.status(200).json({
+      success: true,
+      source: 'gemini',
+      data: parsedData
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAnalyticsStats,
-  handleAIChatbot
+  handleAIChatbot,
+  handleReceiptOCR
 };
