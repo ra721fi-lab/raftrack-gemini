@@ -227,14 +227,43 @@ Selain itu, total pemasukan Anda bulan ini adalah **${formatRupiah(stats.totalIn
 
 Total dana yang Anda miliki adalah **${formatRupiah(stats.balance)}**. Anda bisa memindahkan alokasi sumber dana saat mencatat atau mengubah transaksi di halaman Riwayat!`;
       }
-      // 3. QUERY TENTANG MAKANAN / KULINER
-      else if (prompt.includes('makan') || prompt.includes('makanan') || prompt.includes('kuliner') || prompt.includes('restoran') || prompt.includes('jajan')) {
-        const foodVal = getCategoryExpense('makanan');
-        if (foodVal > 0) {
-          const percent = stats.totalExpense > 0 ? ((foodVal / stats.totalExpense) * 100).toFixed(1) : 0;
-          reply = `Berdasarkan catatan sistem kami, total pengeluaran Anda untuk kategori **makanan** bulan ini adalah **${formatRupiah(foodVal)}**.\n\nIni menyumbang sekitar **${percent}%** dari keseluruhan pengeluaran Anda. AI menyarankan untuk merencanakan belanja bahan makanan mingguan untuk mengurangi kebiasaan jajan spontan!`;
+      // 3. QUERY KATEGORI SPESIFIK DINAMIS (Mengcover Semua Kategori)
+      else if (
+        prompt.includes('makan') || prompt.includes('makanan') || prompt.includes('kuliner') || prompt.includes('restoran') || prompt.includes('jajan') || prompt.includes('kopi') ||
+        prompt.includes('transport') || prompt.includes('transportasi') || prompt.includes('bensin') || prompt.includes('perjalanan') || prompt.includes('gojek') || prompt.includes('grab') || prompt.includes('kendaraan') || prompt.includes('mobil') || prompt.includes('motor') ||
+        prompt.includes('tagihan') || prompt.includes('listrik') || prompt.includes('pln') || prompt.includes('internet') || prompt.includes('pulsa') || prompt.includes('air') || prompt.includes('pdam') || prompt.includes('wifi') || prompt.includes('telepon') ||
+        prompt.includes('hiburan') || prompt.includes('game') || prompt.includes('nonton') || prompt.includes('bioskop') || prompt.includes('refreshing') || prompt.includes('rekreasi') || prompt.includes('wisata') || prompt.includes('jalan-jalan') ||
+        prompt.includes('investasi') || prompt.includes('saham') || prompt.includes('reksadana') || prompt.includes('crypto') || prompt.includes('tabungan') || prompt.includes('emas') || prompt.includes('invest') ||
+        prompt.includes('gaji') || prompt.includes('pemasukan') || prompt.includes('pendapatan') || prompt.includes('upah') ||
+        prompt.includes('lainnya') || prompt.includes('lain-lain') || prompt.includes('lain')
+      ) {
+        let matchedCategory = '';
+        if (prompt.includes('makan') || prompt.includes('makanan') || prompt.includes('kuliner') || prompt.includes('restoran') || prompt.includes('jajan') || prompt.includes('kopi')) {
+          matchedCategory = 'makanan';
+        } else if (prompt.includes('transport') || prompt.includes('transportasi') || prompt.includes('bensin') || prompt.includes('perjalanan') || prompt.includes('gojek') || prompt.includes('grab') || prompt.includes('kendaraan') || prompt.includes('mobil') || prompt.includes('motor')) {
+          matchedCategory = 'transportasi';
+        } else if (prompt.includes('tagihan') || prompt.includes('listrik') || prompt.includes('pln') || prompt.includes('internet') || prompt.includes('pulsa') || prompt.includes('air') || prompt.includes('pdam') || prompt.includes('wifi') || prompt.includes('telepon')) {
+          matchedCategory = 'tagihan';
+        } else if (prompt.includes('hiburan') || prompt.includes('game') || prompt.includes('nonton') || prompt.includes('bioskop') || prompt.includes('refreshing') || prompt.includes('rekreasi') || prompt.includes('wisata') || prompt.includes('jalan-jalan')) {
+          matchedCategory = 'hiburan';
+        } else if (prompt.includes('investasi') || prompt.includes('saham') || prompt.includes('reksadana') || prompt.includes('crypto') || prompt.includes('tabungan') || prompt.includes('emas') || prompt.includes('invest')) {
+          matchedCategory = 'investasi';
+        } else if (prompt.includes('gaji') || prompt.includes('pemasukan') || prompt.includes('pendapatan') || prompt.includes('upah')) {
+          matchedCategory = 'gaji';
         } else {
-          reply = `Anda belum mencatat pengeluaran untuk kategori **makanan** bulan ini. Kinerja yang bagus! Atau mungkin ada transaksi makanan tunai/cash yang lupa Anda catat?`;
+          matchedCategory = 'lainnya';
+        }
+
+        if (matchedCategory === 'gaji') {
+          reply = `Total pemasukan Anda dari kategori **GAJI** periode ini adalah **${formatRupiah(stats.totalIncome)}**.\n\nApakah ada pemasukan dari sumber lain yang ingin Anda catat atau tanyakan?`;
+        } else {
+          const catVal = getCategoryExpense(matchedCategory);
+          if (catVal > 0) {
+            const percent = stats.totalExpense > 0 ? ((catVal / stats.totalExpense) * 100).toFixed(1) : 0;
+            reply = `Berdasarkan catatan sistem kami, total pengeluaran Anda untuk kategori **${matchedCategory.toUpperCase()}** bulan ini adalah **${formatRupiah(catVal)}**.\n\nIni menyumbang sekitar **${percent}%** dari keseluruhan total pengeluaran Anda.`;
+          } else {
+            reply = `Anda belum mencatat pengeluaran untuk kategori **${matchedCategory.toUpperCase()}** bulan ini. Kinerja penghematan pos anggaran yang luar biasa!`;
+          }
         }
       }
       // 4. QUERY TENTANG KATEGORI PENGELUARAN SECARA UMUM ATAU BELANJA SPESIFIK
