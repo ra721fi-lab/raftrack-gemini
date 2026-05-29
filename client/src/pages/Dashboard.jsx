@@ -107,6 +107,71 @@ const Dashboard = ({ setActiveTab }) => {
 
       </div>
 
+      {/* 1.5. SALDO AKUN DETIL (BANK, WALLET, CASH) */}
+      <div className="glass-panel border-white/5 p-4 sm:p-5 flex flex-col gap-4">
+        <div className="flex items-center justify-between border-b border-white/5 pb-2">
+          <div className="flex items-center gap-2">
+            <Cpu className="w-4 h-4 text-neonBlue animate-pulse" />
+            <h4 className="text-xs font-bold font-mono tracking-widest text-slate-300 uppercase">
+              Distribusi Rekening & Wallet
+            </h4>
+          </div>
+          <span className="text-[9px] font-mono text-cyanGlow px-2 py-0.5 rounded bg-cyanGlow/10 border border-cyanGlow/20 uppercase font-bold">
+            AKTIF & TERORGANISIR
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* BANK ACCOUNT */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:border-neonBlue/20 transition-all duration-300 group">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-neonBlue/10 border border-neonBlue/25 flex items-center justify-center text-neonBlue group-hover:scale-105 transition-all">
+                <span className="text-lg">🏦</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Rekening Bank</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">BANK TRANSFER</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-neonBlue font-mono">
+              {formatIDR(stats.bankBalance || 0)}
+            </span>
+          </div>
+
+          {/* E-WALLET */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:border-neonPurple/20 transition-all duration-300 group">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-neonPurple/10 border border-neonPurple/25 flex items-center justify-center text-neonPurple group-hover:scale-105 transition-all">
+                <span className="text-lg">📱</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">E-Wallet</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">GOPAY / OVO / DANA</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-neonPurple font-mono">
+              {formatIDR(stats.walletBalance || 0)}
+            </span>
+          </div>
+
+          {/* CASH */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5 hover:border-cyanGlow/20 transition-all duration-300 group">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-cyanGlow/10 border border-cyanGlow/25 flex items-center justify-center text-cyanGlow group-hover:scale-105 transition-all">
+                <span className="text-lg">💵</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">Tunai (Cash)</span>
+                <span className="text-xs font-bold text-slate-200 font-mono">CASH IN HAND</span>
+              </div>
+            </div>
+            <span className="text-sm font-bold text-cyanGlow font-mono">
+              {formatIDR(stats.cashBalance || 0)}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* 2. AREA GRAFIK TREN FINANSIAL & PIE BREAKDOWN */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         

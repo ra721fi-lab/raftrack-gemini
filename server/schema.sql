@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `description` VARCHAR(255) DEFAULT NULL,
   `date` DATE NOT NULL,
   `receipt_img` LONGTEXT DEFAULT NULL, -- Untuk menyimpan base64 atau path gambar struk
+  `payment_source` VARCHAR(50) NOT NULL DEFAULT 'cash', -- Sumber rekening (bank, wallet, cash)
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE

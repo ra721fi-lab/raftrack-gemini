@@ -6,7 +6,7 @@ const CategoryModel = require('../models/categoryModel');
 // @access  Private
 const createTransaction = async (req, res, next) => {
   try {
-    let { category_id, category_name, type, amount, description, date, receipt_img } = req.body;
+    let { category_id, category_name, type, amount, description, date, receipt_img, payment_source } = req.body;
     const user_id = req.user.id;
 
     if (!amount || !type || !date) {
@@ -48,7 +48,8 @@ const createTransaction = async (req, res, next) => {
       amount,
       description: description || '',
       date,
-      receipt_img: receipt_img || null
+      receipt_img: receipt_img || null,
+      payment_source: payment_source || 'cash'
     });
 
     res.status(201).json({
@@ -119,7 +120,7 @@ const getTransactionById = async (req, res, next) => {
 // @access  Private
 const updateTransaction = async (req, res, next) => {
   try {
-    const { category_id, category_name, type, amount, description, date, receipt_img } = req.body;
+    const { category_id, category_name, type, amount, description, date, receipt_img, payment_source } = req.body;
     const transactionId = req.params.id;
 
     let transaction = await TransactionModel.findById(transactionId);
@@ -154,7 +155,8 @@ const updateTransaction = async (req, res, next) => {
       amount: amount || transaction.amount,
       description: description !== undefined ? description : transaction.description,
       date: date || transaction.date,
-      receipt_img: receipt_img !== undefined ? receipt_img : transaction.receipt_img
+      receipt_img: receipt_img !== undefined ? receipt_img : transaction.receipt_img,
+      payment_source: payment_source || transaction.payment_source || 'cash'
     });
 
     res.status(200).json({

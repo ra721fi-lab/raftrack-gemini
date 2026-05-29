@@ -3,15 +3,16 @@ const CategoryModel = require('./categoryModel');
 
 class TransactionModel {
   // Membuat transaksi baru
-  static async create({ user_id, category_id, type, amount, description, date, receipt_img }) {
+  static async create({ user_id, category_id, type, amount, description, date, receipt_img, payment_source }) {
     const dbType = db.getDbType();
+    const source = payment_source || 'cash';
     if (dbType === 'mysql') {
       const pool = db.getPool();
       const [result] = await pool.query(
-        'INSERT INTO transactions (user_id, category_id, type, amount, description, date, receipt_img) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [user_id, category_id, type, amount, description, date, receipt_img || null]
+        'INSERT INTO transactions (user_id, category_id, type, amount, description, date, receipt_img, payment_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [user_id, category_id, type, amount, description, date, receipt_img || null, source]
       );
-      return { id: result.insertId, user_id, category_id, type, amount, description, date, receipt_img };
+      return { id: result.insertId, user_id, category_id, type, amount, description, date, receipt_img, payment_source: source };
     } else {
       const data = db.readLokadata();
       const newId = data.transactions.length > 0 ? Math.max(...data.transactions.map(t => t.id)) + 1 : 1;
@@ -24,6 +25,7 @@ class TransactionModel {
         description,
         date,
         receipt_img: receipt_img || null,
+        payment_source: source,
         created_at: new Date().toISOString()
       };
       data.transactions.push(newTransaction);
@@ -127,13 +129,13 @@ class TransactionModel {
   }
 
   // Mengubah data transaksi
-  static async update(id, { category_id, type, amount, description, date, receipt_img }) {
+  static async update(id, { category_id, type, amount, description, date, receipt_img, payment_source }) {
     const dbType = db.getDbType();
     if (dbType === 'mysql') {
       const pool = db.getPool();
       await pool.query(
-        'UPDATE transactions SET category_id = ?, type = ?, amount = ?, description = ?, date = ?, receipt_img = COALESCE(?, receipt_img) WHERE id = ?',
-        [category_id, type, amount, description, date, receipt_img || null, id]
+        'UPDATE transactions SET category_id = ?, type = ?, amount = ?, description = ?, date = ?, receipt_img = COALESCE(?, receipt_img), payment_source = ? WHERE id = ?',
+        [category_id, type, amount, description, date, receipt_img || null, payment_source || 'cash', id]
       );
       return this.findById(id);
     } else {
@@ -148,7 +150,8 @@ class TransactionModel {
         amount: Number(amount),
         description,
         date,
-        receipt_img: receipt_img !== undefined ? receipt_img : data.transactions[index].receipt_img
+        receipt_img: receipt_img !== undefined ? receipt_img : data.transactions[index].receipt_img,
+        payment_source: payment_source || data.transactions[index].payment_source || 'cash'
       };
 
       db.writeLokadata(data);
@@ -192,6 +195,29 @@ class TransactionModel {
       const totalExpense = parseFloat(totals[0].total_expense || 0);
       const balance = totalIncome - totalExpense;
 
+      // 1.5. Saldo Akun Terpisah (Bank, Wallet, Cash)
+      const [accountTotals] = await pool.query(`
+        SELECT 
+          payment_source,
+          SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END) as income,
+          SUM(CASE WHEN type = 'pengeluaran' THEN amount ELSE 0 END) as expense
+        FROM transactions 
+        WHERE user_id = ?
+        GROUP BY payment_source
+      `, [user_id]);
+
+      let bankBalance = 0;
+      let walletBalance = 0;
+      let cashBalance = 0;
+
+      accountTotals.forEach(row => {
+        const bal = parseFloat(row.income || 0) - parseFloat(row.expense || 0);
+        const src = row.payment_source || 'cash';
+        if (src === 'bank') bankBalance = bal;
+        else if (src === 'wallet') walletBalance = bal;
+        else if (src === 'cash') cashBalance = bal;
+      });
+
       // 2. Pengeluaran per Kategori
       const [categoryBreakdown] = await pool.query(`
         SELECT 
@@ -223,6 +249,9 @@ class TransactionModel {
         balance,
         totalIncome,
         totalExpense,
+        bankBalance,
+        walletBalance,
+        cashBalance,
         categoryBreakdown: categoryBreakdown.map(c => ({
           name: c.category_name,
           color: c.category_color,
@@ -251,6 +280,25 @@ class TransactionModel {
       });
 
       const balance = totalIncome - totalExpense;
+
+      // Saldo Akun Terpisah (Bank, Wallet, Cash) untuk Lokadata
+      let bankBalance = 0;
+      let walletBalance = 0;
+      let cashBalance = 0;
+
+      transactions.forEach(t => {
+        const amt = t.amount;
+        const src = t.payment_source || 'cash';
+        const isInc = t.type === 'pemasukan';
+
+        if (src === 'bank') {
+          bankBalance += isInc ? amt : -amt;
+        } else if (src === 'wallet') {
+          walletBalance += isInc ? amt : -amt;
+        } else {
+          cashBalance += isInc ? amt : -amt;
+        }
+      });
 
       // Pengeluaran per kategori
       const categoryMap = {};
@@ -297,6 +345,9 @@ class TransactionModel {
         balance,
         totalIncome,
         totalExpense,
+        bankBalance,
+        walletBalance,
+        cashBalance,
         categoryBreakdown,
         monthlyTrend
       };

@@ -34,6 +34,19 @@ async function initializeDatabase() {
     for (const query of queries) {
       await pool.query(query);
     }
+    
+    // Cek dan tambahkan kolom payment_source ke tabel transactions jika belum ada (skema migrasi)
+    try {
+      const [columns] = await pool.query("SHOW COLUMNS FROM `transactions` LIKE 'payment_source'");
+      if (columns.length === 0) {
+        console.log("[MySQL Migration] Menambahkan kolom 'payment_source' ke tabel 'transactions'...");
+        await pool.query("ALTER TABLE `transactions` ADD COLUMN `payment_source` VARCHAR(50) NOT NULL DEFAULT 'cash'");
+        console.log("[MySQL Migration] Kolom 'payment_source' berhasil ditambahkan.");
+      }
+    } catch (migErr) {
+      console.warn("[MySQL Migration] Peringatan saat memeriksa/menambahkan kolom 'payment_source':", migErr.message);
+    }
+
     console.log('[MySQL Init] Migrasi skema & seeding kategori default berhasil diselesaikan.');
   } catch (error) {
     console.error('[MySQL Init] Gagal menjalankan inisialisasi skema database:', error);

@@ -32,6 +32,8 @@ const Transactions = () => {
   const [categoryId, setCategoryId] = useState('');
   const [categoryName, setCategoryName] = useState(''); // Untuk Speech/OCR auto-resolve
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
+  const [paymentSource, setPaymentSource] = useState('cash'); // 'cash', 'bank', 'wallet'
+
 
   // Kategori default
   const defaultCategories = [
@@ -55,6 +57,7 @@ const Transactions = () => {
         setCategoryId(editingTransactionData.category_id);
         setCategoryName(editingTransactionData.category_name);
         setDate(editingTransactionData.date.substring(0, 10));
+        setPaymentSource(editingTransactionData.payment_source || 'cash');
       } else {
         setEditingId(null);
         setAmount('');
@@ -63,6 +66,7 @@ const Transactions = () => {
         setCategoryId('');
         setCategoryName('');
         setDate(new Date().toISOString().substring(0, 10));
+        setPaymentSource('cash');
       }
     }
   }, [isDrawerOpen, editingTransactionData]);
@@ -94,7 +98,8 @@ const Transactions = () => {
       type,
       category_id: categoryId ? Number(categoryId) : null,
       category_name: categoryName,
-      date
+      date,
+      payment_source: paymentSource
     };
 
     try {
@@ -241,6 +246,7 @@ const Transactions = () => {
                   <tr className="border-b border-white/5 bg-white/5 text-[9px] font-bold tracking-widest text-slate-400 font-mono uppercase">
                     <th className="p-4 pl-6">Alur & Kategori</th>
                     <th className="p-4">Tanggal</th>
+                    <th className="p-4">Rekening</th>
                     <th className="p-4">Deskripsi</th>
                     <th className="p-4 text-right">Nominal</th>
                     <th className="p-4 text-center pr-6">Tindakan</th>
@@ -267,6 +273,25 @@ const Transactions = () => {
                         {/* Tanggal */}
                         <td className="p-4 font-mono text-slate-400">
                           {tx.date.substring(0, 10)}
+                        </td>
+
+                        {/* Rekening / Sumber dana */}
+                        <td className="p-4 font-mono">
+                          {tx.payment_source === 'bank' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonBlue border border-neonBlue/20 bg-neonBlue/5">
+                              🏦 Bank
+                            </span>
+                          )}
+                          {tx.payment_source === 'wallet' && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonPurple border border-neonPurple/20 bg-neonPurple/5">
+                              📱 Wallet
+                            </span>
+                          )}
+                          {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5">
+                              💵 Cash
+                            </span>
+                          )}
                         </td>
 
                         {/* Deskripsi */}
@@ -326,6 +351,23 @@ const Transactions = () => {
                         <span className="capitalize font-mono text-[9px] font-bold tracking-wider text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/5">
                           {tx.category_name}
                         </span>
+
+                        {/* Rekening / Sumber dana */}
+                        {tx.payment_source === 'bank' && (
+                          <span className="font-mono text-[9px] font-bold tracking-wider text-neonBlue bg-neonBlue/5 px-2 py-0.5 rounded border border-neonBlue/10">
+                            🏦 Bank
+                          </span>
+                        )}
+                        {tx.payment_source === 'wallet' && (
+                          <span className="font-mono text-[9px] font-bold tracking-wider text-neonPurple bg-neonPurple/5 px-2 py-0.5 rounded border border-neonPurple/10">
+                            📱 Wallet
+                          </span>
+                        )}
+                        {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                          <span className="font-mono text-[9px] font-bold tracking-wider text-cyanGlow bg-cyanGlow/5 px-2 py-0.5 rounded border border-cyanGlow/10">
+                            💵 Cash
+                          </span>
+                        )}
                       </div>
                       <span className={`text-sm font-bold font-mono ${
                         isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
@@ -481,6 +523,51 @@ const Transactions = () => {
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Rekening / Sumber Dana */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
+                  Sumber Rekening / Wallet
+                </label>
+                <div className="grid grid-cols-3 gap-2.5 p-1 rounded-xl bg-black/40 border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSource('bank')}
+                    className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                      paymentSource === 'bank'
+                        ? 'bg-neonBlue text-darkSpace-900 shadow-neon-blue'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm">🏦</span>
+                    <span>BANK</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSource('wallet')}
+                    className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                      paymentSource === 'wallet'
+                        ? 'bg-neonPurple text-white shadow-neon-purple'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm">📱</span>
+                    <span>WALLET</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentSource('cash')}
+                    className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                      paymentSource === 'cash'
+                        ? 'bg-cyanGlow text-darkSpace-900 shadow-neon-cyan'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="text-sm">💵</span>
+                    <span>CASH</span>
+                  </button>
+                </div>
               </div>
 
               {/* Deskripsi */}
