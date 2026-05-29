@@ -116,33 +116,39 @@ const Transactions = () => {
 
   // Callback saat Input Suara (Voice) berhasil menerjemahkan kalimat
   const handleSpeechSuccess = (parsedData) => {
-    setAmount(parsedData.amount);
-    setType(parsedData.type);
-    setCategoryName(parsedData.category_name);
-    setDescription(parsedData.description);
-    setDate(parsedData.date);
-    
-    // Cari category_id yang cocok berdasarkan nama kategori
     const matchedCat = defaultCategories.find(c => c.name === parsedData.category_name);
-    if (matchedCat) {
-      setCategoryId(matchedCat.id);
-    }
+    
+    // Set data ke dalam objek transaksi untuk disinkronkan otomatis saat laci/drawer terbuka
+    setEditingTransactionData({
+      id: null,
+      amount: parsedData.amount,
+      type: parsedData.type,
+      category_name: parsedData.category_name,
+      category_id: matchedCat ? matchedCat.id : null,
+      description: parsedData.description,
+      date: String(parsedData.date || new Date().toISOString()).substring(0, 10),
+      payment_source: 'cash'
+    });
+
+    setIsDrawerOpen(true);
   };
 
   // Callback saat Pemindai Struk (OCR Scanner) berhasil mengekstrak data struk
   const handleOCRSuccess = (parsedData) => {
-    setAmount(parsedData.amount);
-    setType(parsedData.type);
-    setCategoryName(parsedData.category_name);
-    setDescription(parsedData.description);
-    setDate(parsedData.date);
-    
     const matchedCat = defaultCategories.find(c => c.name === parsedData.category_name);
-    if (matchedCat) {
-      setCategoryId(matchedCat.id);
-    }
     
-    // Buka laci/drawer input secara otomatis agar pengguna melihat data terisi
+    // Set data ke dalam objek transaksi untuk disinkronkan otomatis saat laci/drawer terbuka
+    setEditingTransactionData({
+      id: null,
+      amount: parsedData.amount,
+      type: parsedData.type,
+      category_name: parsedData.category_name,
+      category_id: matchedCat ? matchedCat.id : null,
+      description: parsedData.description,
+      date: String(parsedData.date || new Date().toISOString()).substring(0, 10),
+      payment_source: 'cash'
+    });
+
     setIsDrawerOpen(true);
   };
 
