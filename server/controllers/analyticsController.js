@@ -12,6 +12,17 @@ const formatRupiah = (value) => {
   }).format(value);
 };
 
+// Helper untuk format tanggal aman (mencegah crash objek Date di MySQL)
+const formatDate = (dateVal) => {
+  if (!dateVal) return 'n/a';
+  try {
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? String(dateVal).substring(0, 10) : d.toISOString().substring(0, 10);
+  } catch (err) {
+    return String(dateVal).substring(0, 10);
+  }
+};
+
 // @desc    Dapatkan Ringkasan Statistik AI & Insight Keuangan
 // @route   GET /api/analytics/stats
 // @access  Private
@@ -126,7 +137,7 @@ const handleAIChatbot = async (req, res, next) => {
 
     // Siapkan daftar transaksi terbaru dalam bentuk ringkas untuk disuntikkan ke prompt
     const recentTransactions = transactions.slice(0, 10).map(t => ({
-      date: t.date ? t.date.substring(0, 10) : 'n/a',
+      date: formatDate(t.date),
       type: t.type,
       amount: t.amount,
       description: t.description || 'Tanpa deskripsi',
@@ -246,7 +257,7 @@ Total seluruh pengeluaran tercatat Anda adalah **${formatRupiah(stats.totalExpen
           const list = transactions.slice(0, limit).map((t, idx) => {
             const typeSign = t.type === 'pemasukan' ? '+' : '-';
             const srcText = t.payment_source ? `[${t.payment_source.toUpperCase()}]` : '[CASH]';
-            return `${idx + 1}. **${t.description || 'Tanpa deskripsi'}** (${t.date ? t.date.substring(0, 10) : 'n/a'}) -> **${typeSign}${formatRupiah(t.amount)}** ${srcText}`;
+            return `${idx + 1}. **${t.description || 'Tanpa deskripsi'}** (${formatDate(t.date)}) -> **${typeSign}${formatRupiah(t.amount)}** ${srcText}`;
           }).join('\n');
           reply = `Berikut adalah **${limit} transaksi terbaru** yang berhasil saya temukan dari riwayat Anda:\n\n${list}\n\nSemua data ini tersinkronisasi secara real-time dengan database Anda!`;
         } else {
