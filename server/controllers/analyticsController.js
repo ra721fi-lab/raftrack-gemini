@@ -1,5 +1,7 @@
 const TransactionModel = require('../models/transactionModel');
 const CategoryModel = require('../models/categoryModel');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 
 // Helper untuk format rupiah
 const formatRupiah = (value) => {
@@ -116,62 +118,186 @@ const handleAIChatbot = async (req, res, next) => {
       throw new Error('Harap masukkan pesan chat');
     }
 
+    // 1. Ambil data finansial kontekstual nyata dari database
     const stats = await TransactionModel.getStats(user_id);
     const transactions = await TransactionModel.getAll(user_id);
-    const prompt = message.toLowerCase();
+    const apiKey = process.env.GEMINI_API_KEY;
     let reply = '';
 
+    // Siapkan daftar transaksi terbaru dalam bentuk ringkas untuk disuntikkan ke prompt
+    const recentTransactions = transactions.slice(0, 10).map(t => ({
+      date: t.date ? t.date.substring(0, 10) : 'n/a',
+      type: t.type,
+      amount: t.amount,
+      description: t.description || 'Tanpa deskripsi',
+      category: t.category_name || 'Lainnya',
+      payment_source: t.payment_source || 'cash'
+    }));
+
     // ========================================================
-    // LOGIC NLP CHATBOT PINTAR (INDONESIAN PARSER)
+    // MODEL UTAMA: GOOGLE GEMINI 1.5 FLASH (KUNCI API DIKETAHUI)
     // ========================================================
-    if (prompt.includes('makanan') || prompt.includes('makan') || prompt.includes('kuliner')) {
-      const foodExp = stats.categoryBreakdown.find(c => c.name === 'makanan');
-      if (foodExp && foodExp.value > 0) {
-        const percent = stats.totalExpense > 0 ? ((foodExp.value / stats.totalExpense) * 100).toFixed(1) : 0;
-        reply = `Berdasarkan catatan keuangan Anda, total pengeluaran untuk **Makanan** bulan ini adalah **${formatRupiah(foodExp.value)}** (${percent}% dari seluruh pengeluaran Anda). Cobalah membawa bekal makan siang untuk menghemat lebih banyak!`;
-      } else {
-        reply = 'Anda belum mencatat pengeluaran untuk kategori makanan pada periode ini. Bagus sekali, atau mungkin Anda lupa mencatatnya?';
+    if (apiKey) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        
+        // Mempersiapkan System Prompt dengan data finansial pengguna
+        const systemPrompt = `Anda adalah Asisten AI RafTrack Gemini (Gemini Fintech Agent) yang cerdas dan handal.
+Tugas Anda adalah menjadi perencana keuangan pribadi yang membantu menganalisis pola pengeluaran, pemasukan, saldo, dan memberikan saran penghematan cerdas yang konkret kepada pengguna.
+
+Berikut adalah DATA KEUANGAN REAL-TIME dari pengguna saat ini:
+- Total Saldo Bersih: ${formatRupiah(stats.balance)}
+- Saldo Bank: ${formatRupiah(stats.bankBalance)}
+- Saldo E-Wallet: ${formatRupiah(stats.walletBalance)}
+- Saldo Cash (Tunai): ${formatRupiah(stats.cashBalance)}
+- Total Pemasukan: ${formatRupiah(stats.totalIncome)}
+- Total Pengeluaran: ${formatRupiah(stats.totalExpense)}
+
+Rincian Pengeluaran per Kategori:
+${stats.categoryBreakdown.map(c => `- ${c.name.toUpperCase()}: ${formatRupiah(c.value)}`).join('\n') || '- Belum ada pengeluaran'}
+
+10 Transaksi Terakhir Pengguna:
+${recentTransactions.map((t, idx) => `${idx + 1}. [${t.date}] ${t.type.toUpperCase()} - ${formatRupiah(t.amount)} - ${t.description} (Kategori: ${t.category}, Rekening: ${t.payment_source.toUpperCase()})`).join('\n') || '- Belum ada riwayat transaksi'}
+
+Aturan Penting Respon Anda:
+1. Jawablah dalam Bahasa Indonesia yang ramah, profesional, ringkas, dan solutif.
+2. Jawab secara SPESIFIK dan NYAMBUNG sesuai apa yang ditanyakan/diperintahkan pengguna. Hubungkan jawaban Anda dengan data keuangan nyata di atas jika relevan.
+3. Selalu gunakan tanda bintang ganda (format bold markdown: **teks**) untuk menekankan angka nominal uang rupiah (contoh: **${formatRupiah(100000)}**), nama kategori (contoh: **makanan**), dan nama rekening (contoh: **Bank**, **Wallet**, **Cash**). Jangan gunakan format markdown lain selain bold biasa (karena parser frontend kami sangat sederhana dan hanya mendukung format **).
+4. Jangan berikan respon yang terlalu panjang. Jaga agar jawaban padat, langsung menjawab inti pertanyaan, dan mudah dibaca di layar HP (maksimal 2-3 paragraf singkat atau list poin).`;
+
+        const result = await model.generateContent({
+          contents: [
+            { role: 'user', parts: [{ text: `System Context:\n${systemPrompt}\n\nPertanyaan Pengguna: "${message}"` }] }
+          ]
+        });
+        
+        reply = result.response.text();
+      } catch (geminiError) {
+        console.error('[Gemini API Error, beralih ke Fallback NLP Engine]:', geminiError);
       }
-    } 
-    else if (prompt.includes('boros') || prompt.includes('saran') || prompt.includes('hemat') || prompt.includes('tips')) {
-      const highest = stats.categoryBreakdown[0];
-      if (highest && highest.value > 0) {
-        reply = `Untuk meningkatkan tabungan Anda, AI menyarankan untuk membatasi pengeluaran di kategori terbesar Anda, yaitu **${highest.name.toUpperCase()}** (${formatRupiah(highest.value)}). Selain itu, terapkan aturan **50/30/20** agar finansial Anda tetap sehat dan seimbang.`;
-      } else {
-        reply = 'AI menyarankan Anda untuk memulai pencatatan harian secara disiplin. Alokasikan 20% pemasukan langsung ke pos tabungan atau investasi sebelum membelanjakan pos lainnya.';
+    }
+
+    // ========================================================
+    // ENGINE CADANGAN: ADVANCED CONTEXT-AWARE INDONESIAN NLP
+    // ========================================================
+    if (!reply) {
+      const prompt = message.toLowerCase();
+      
+      const getCategoryExpense = (catName) => {
+        const cat = stats.categoryBreakdown.find(c => c.name.toLowerCase().includes(catName.toLowerCase()));
+        return cat ? cat.value : 0;
+      };
+
+      // 1. QUERY TENTANG SALDO ATAU UANG
+      if (prompt.includes('saldo') || prompt.includes('uang') || prompt.includes('duit') || prompt.includes('total') || prompt.includes('punya berapa') || prompt.includes('dompet') || prompt.includes('kas')) {
+        if (prompt.includes('bank')) {
+          reply = `Saat ini, saldo Anda di rekening **Bank** adalah **${formatRupiah(stats.bankBalance)}**.\n\nApakah ada transaksi di Bank yang ingin Anda periksa atau catat?`;
+        } else if (prompt.includes('wallet') || prompt.includes('e-wallet') || prompt.includes('dompet digital')) {
+          reply = `Saat ini, saldo Anda di **Wallet** (E-Wallet) adalah **${formatRupiah(stats.walletBalance)}**.\n\nSemua transaksi cashless tercatat dengan rapi di sini!`;
+        } else if (prompt.includes('cash') || prompt.includes('tunai') || prompt.includes('pegang')) {
+          reply = `Saat ini, sisa uang tunai (**Cash**) yang Anda pegang adalah **${formatRupiah(stats.cashBalance)}**.\n\nTetap catat pengeluaran tunai kecil agar tidak bocor alus, ya!`;
+        } else {
+          reply = `Berikut adalah ringkasan saldo keuangan riil Anda saat ini:
+- **Total Saldo Bersih**: **${formatRupiah(stats.balance)}**
+- Saldo di **Bank**: **${formatRupiah(stats.bankBalance)}**
+- Saldo di **Wallet**: **${formatRupiah(stats.walletBalance)}**
+- Uang Tunai (**Cash**): **${formatRupiah(stats.cashBalance)}**
+
+Selain itu, total pemasukan Anda bulan ini adalah **${formatRupiah(stats.totalIncome)}** dengan total pengeluaran sebesar **${formatRupiah(stats.totalExpense)}**.`;
+        }
       }
-    }
-    else if (prompt.includes('prediksi') || prompt.includes('masa depan') || prompt.includes('depan')) {
-      if (transactions.length > 0) {
-        const avgExpense = stats.totalExpense > 0 ? stats.totalExpense : 500000;
-        const predicted = avgExpense * 1.05; // Asumsi inflasi atau kenaikan tren 5%
-        reply = `Berdasarkan pola historis pengeluaran Anda saat ini, AI memprediksi pengeluaran Anda untuk bulan depan berkisar **${formatRupiah(predicted)}**. Rekomendasi: Tekan pengeluaran hiburan dan non-pokok agar berada di bawah prediksi ini.`;
-      } else {
-        reply = 'AI belum memiliki data transaksi yang cukup untuk melakukan prediksi. Silakan catat setidaknya 3 transaksi pengeluaran terlebih dahulu.';
+      // 2. QUERY TENTANG REKENING / SUMBER DANA
+      else if (prompt.includes('rekening') || prompt.includes('bank') || prompt.includes('wallet') || prompt.includes('cash') || prompt.includes('sumber dana') || prompt.includes('simpan')) {
+        reply = `Uang Anda saat ini tersebar di 3 rekening penyimpanan berikut:
+1. 🏦 **Bank**: **${formatRupiah(stats.bankBalance)}**
+2. 📱 **Wallet**: **${formatRupiah(stats.walletBalance)}**
+3. 💵 **Cash**: **${formatRupiah(stats.cashBalance)}**
+
+Total dana yang Anda miliki adalah **${formatRupiah(stats.balance)}**. Anda bisa memindahkan alokasi sumber dana saat mencatat atau mengubah transaksi di halaman Riwayat!`;
       }
-    }
-    else if (prompt.includes('saldo') || prompt.includes('uang') || prompt.includes('total') || prompt.includes('pemasukan') || prompt.includes('pengeluaran')) {
-      reply = `Berikut adalah ringkasan keuangan real-time Anda saat ini:
-- **Total Saldo**: ${formatRupiah(stats.balance)}
-- **Total Pemasukan**: ${formatRupiah(stats.totalIncome)}
-- **Total Pengeluaran**: ${formatRupiah(stats.totalExpense)}
+      // 3. QUERY TENTANG MAKANAN / KULINER
+      else if (prompt.includes('makan') || prompt.includes('makanan') || prompt.includes('kuliner') || prompt.includes('restoran') || prompt.includes('jajan')) {
+        const foodVal = getCategoryExpense('makanan');
+        if (foodVal > 0) {
+          const percent = stats.totalExpense > 0 ? ((foodVal / stats.totalExpense) * 100).toFixed(1) : 0;
+          reply = `Berdasarkan catatan sistem kami, total pengeluaran Anda untuk kategori **makanan** bulan ini adalah **${formatRupiah(foodVal)}**.\n\nIni menyumbang sekitar **${percent}%** dari keseluruhan pengeluaran Anda. AI menyarankan untuk merencanakan belanja bahan makanan mingguan untuk mengurangi kebiasaan jajan spontan!`;
+        } else {
+          reply = `Anda belum mencatat pengeluaran untuk kategori **makanan** bulan ini. Kinerja yang bagus! Atau mungkin ada transaksi makanan tunai/cash yang lupa Anda catat?`;
+        }
+      }
+      // 4. QUERY TENTANG KATEGORI PENGELUARAN SECARA UMUM ATAU BELANJA SPESIFIK
+      else if (prompt.includes('belanja') || prompt.includes('pengeluaran') || prompt.includes('kategori') || prompt.includes('habis') || prompt.includes('beli')) {
+        const highest = stats.categoryBreakdown[0];
+        if (highest && highest.value > 0) {
+          const percent = stats.totalExpense > 0 ? ((highest.value / stats.totalExpense) * 100).toFixed(1) : 0;
+          reply = `Bulan ini, pengeluaran terbesar Anda dialokasikan pada kategori **${highest.name.toUpperCase()}** dengan total **${formatRupiah(highest.value)}** (sekitar **${percent}%** dari total pengeluaran Anda).\n\nBerikut 3 kategori teratas pengeluaran Anda:
+${stats.categoryBreakdown.slice(0, 3).map((c, i) => `${i + 1}. **${c.name.toUpperCase()}**: **${formatRupiah(c.value)}**`).join('\n')}
 
-Apakah ada kategori tertentu yang ingin Anda analisis lebih dalam?`;
-    }
-    else if (prompt.includes('halo') || prompt.includes('hai') || prompt.includes('pagi') || prompt.includes('siang') || prompt.includes('sore') || prompt.includes('malam')) {
-      reply = `Halo! Saya adalah **Asisten AI RafTrack Gemini**. 🌌 
+Total seluruh pengeluaran tercatat Anda adalah **${formatRupiah(stats.totalExpense)}**.`;
+        } else {
+          reply = `Anda belum memiliki catatan pengeluaran bulan ini. Total pengeluaran Anda saat ini adalah **${formatRupiah(stats.totalExpense)}**. Mulai catat pengeluaran Anda dengan menekan tombol **Catat Manual** di sidebar kiri!`;
+        }
+      }
+      // 5. QUERY TENTANG RIWAYAT / TRANSAKSI TERAKHIR
+      else if (prompt.includes('transaksi') || prompt.includes('terakhir') || prompt.includes('terbaru') || prompt.includes('riwayat') || prompt.includes('catatan') || prompt.includes('daftar')) {
+        if (transactions.length > 0) {
+          const limit = Math.min(transactions.length, 5);
+          const list = transactions.slice(0, limit).map((t, idx) => {
+            const typeSign = t.type === 'pemasukan' ? '+' : '-';
+            const srcText = t.payment_source ? `[${t.payment_source.toUpperCase()}]` : '[CASH]';
+            return `${idx + 1}. **${t.description || 'Tanpa deskripsi'}** (${t.date ? t.date.substring(0, 10) : 'n/a'}) -> **${typeSign}${formatRupiah(t.amount)}** ${srcText}`;
+          }).join('\n');
+          reply = `Berikut adalah **${limit} transaksi terbaru** yang berhasil saya temukan dari riwayat Anda:\n\n${list}\n\nSemua data ini tersinkronisasi secara real-time dengan database Anda!`;
+        } else {
+          reply = `Belum ada riwayat transaksi yang tercatat di akun Anda. Mulai catat pemasukan pertama Anda atau gunakan fitur **Scan Struk** untuk pencatatan otomatis berbasis AI OCR!`;
+        }
+      }
+      // 6. QUERY TENTANG PEMBOROSAN / HEMAT / SARAN / TIPS
+      else if (prompt.includes('boros') || prompt.includes('hemat') || prompt.includes('saran') || prompt.includes('tips') || prompt.includes('sehat') || prompt.includes('keuangan')) {
+        const highest = stats.categoryBreakdown[0];
+        const expenseRatio = stats.totalIncome > 0 ? (stats.totalExpense / stats.totalIncome) * 100 : 100;
+        
+        let customAdvice = '';
+        if (expenseRatio >= 80) {
+          customAdvice = `Awas! Rasio pengeluaran Anda sudah mencapai **${expenseRatio.toFixed(1)}%** dari pemasukan Anda. Ini tergolong **sangat boros** dan berisiko defisit. AI sangat menyarankan untuk menunda pengeluaran non-primer.`;
+        } else if (expenseRatio >= 50) {
+          customAdvice = `Rasio pengeluaran Anda berada di angka **${expenseRatio.toFixed(1)}%**. Cukup wajar, namun Anda masih bisa mengoptimalkan tabungan dengan mengurangi anggaran di kategori non-esensial.`;
+        } else {
+          customAdvice = `Luar biasa! Rasio pengeluaran Anda hanya **${expenseRatio.toFixed(1)}%** dari pemasukan. Kesehatan finansial Anda sangat prima!`;
+        }
 
-Saya siap membantu menganalisis pola keuangan Anda, memprediksi pengeluaran, memberikan saran penghematan, hingga membantu Anda mencatat transaksi baru secara otomatis. 
+        reply = `Berdasarkan analisis finansial cerdas kami:\n\n1. ${customAdvice}\n2. Kategori pengeluaran tertinggi Anda adalah **${highest ? highest.name.toUpperCase() : 'belum ada'}** sebesar **${formatRupiah(highest ? highest.value : 0)}**.\n3. **Tips Penghematan**: Gunakan metode alokasi dana darurat otomatis langsung di awal bulan, dan pisahkan dana belanja harian ke rekening **Wallet** agar tidak mengganggu dana utama di rekening **Bank** Anda.`;
+      }
+      // 7. PREDIKSI MASA DEPAN / BULAN DEPAN
+      else if (prompt.includes('prediksi') || prompt.includes('masa depan') || prompt.includes('proyeksi') || prompt.includes('depan')) {
+        if (stats.totalExpense > 0) {
+          const predicted = stats.totalExpense * 1.05;
+          reply = `Menggunakan analisis tren pengeluaran saat ini (**${formatRupiah(stats.totalExpense)}**), AI memprediksi bahwa total pengeluaran Anda bulan depan akan berkisar **${formatRupiah(predicted)}**.\n\nRekomendasi AI: Tekan pengeluaran pada kategori **${stats.categoryBreakdown[0] ? stats.categoryBreakdown[0].name.toUpperCase() : 'lainnya'}** agar total pengeluaran Anda tetap berada di bawah prediksi batas aman tersebut.`;
+        } else {
+          reply = `AI belum memiliki data transaksi pengeluaran yang cukup untuk membuat prediksi yang akurat. Silakan tambahkan beberapa transaksi pengeluaran terlebih dahulu!`;
+        }
+      }
+      // 8. INTERAKSI HALO / HAI / SAPAAN
+      else if (prompt.includes('halo') || prompt.includes('hai') || prompt.includes('pagi') || prompt.includes('siang') || prompt.includes('sore') || prompt.includes('malam') || prompt.includes('sapa') || prompt.includes('siapa')) {
+        reply = `Halo! Saya adalah **Asisten AI RafTrack Gemini** 🌌.
 
-Cobalah bertanya seperti:
-- *"Berapa saldo saya saat ini?"*
-- *"Apakah saya boros bulan ini?"*
-- *"Berapa total pengeluaran makanan saya?"*`;
-    }
-    else {
-      reply = `Pesan Anda diterima dengan baik oleh sistem AI. Saat ini saldo Anda adalah **${formatRupiah(stats.balance)}** dengan total pengeluaran **${formatRupiah(stats.totalExpense)}**. 
+Saya siap membantu memantau dan menganalisis seluruh data keuangan Anda secara real-time. Anda bisa bertanya tentang:
+- Saldo Anda di rekening **Bank**, **Wallet**, atau **Cash**
+- Pengeluaran terbesar Anda atau rincian kategori seperti **makanan**
+- Riwayat **transaksi terakhir**
+- Saran penghematan (**apakah saya boros?**)
 
-Untuk memaksimalkan kesehatan finansial Anda, AI merekomendasikan Anda menjaga alokasi dana darurat tetap terisi dan menghindari pembelian impulsif minggu ini.`;
+Ada yang bisa saya bantu sekarang?`;
+      }
+      // 9. DEFAULT SMART FALLBACK
+      else {
+        reply = `Pesan Anda ("*${message}*") diterima dengan baik oleh sistem AI.
+
+Saat ini saldo bersih Anda adalah **${formatRupiah(stats.balance)}** yang tersebar di **Bank** (**${formatRupiah(stats.bankBalance)}**), **Wallet** (**${formatRupiah(stats.walletBalance)}**), dan **Cash** (**${formatRupiah(stats.cashBalance)}**). 
+
+Apakah Anda ingin saya memberikan saran penghematan anggaran, menganalisis kategori belanja tertentu, atau memeriksa catatan transaksi terbaru Anda? Silakan perintahkan saya!`;
+      }
     }
 
     res.status(200).json({
