@@ -385,11 +385,19 @@ Format JSON wajib berisi struktur berikut:
 
     let parsedData;
     try {
-      const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      // Ekstraktor JSON anti-crash: Temukan '{' pertama dan '}' terakhir untuk mengisolasi blok JSON
+      const startIdx = responseText.indexOf('{');
+      const endIdx = responseText.lastIndexOf('}');
+      
+      if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+        throw new Error('Format JSON tidak ditemukan dalam respon Gemini AI.');
+      }
+      
+      const cleanJson = responseText.substring(startIdx, endIdx + 1);
       parsedData = JSON.parse(cleanJson);
     } catch (parseErr) {
       console.error('[Gemini OCR Parsing Error]:', parseErr, 'Response Text:', responseText);
-      throw new Error('Gagal mengekstrak teks nota dari Gemini AI. Format struk mungkin tidak didukung.');
+      throw new Error('Gagal mengurai teks nota dari Gemini AI. Struk mungkin kurang terbaca.');
     }
 
     res.status(200).json({
