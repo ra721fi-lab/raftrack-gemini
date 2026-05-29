@@ -327,10 +327,12 @@ const handleReceiptOCR = async (req, res, next) => {
   try {
     const { image, mimeType } = req.body;
 
-    if (!image || !mimeType) {
+    if (!image) {
       res.status(400);
-      throw new Error('Harap sertakan gambar struk terenkripsi Base64 dan tipe mimeType dokumen');
+      throw new Error('Harap sertakan gambar struk terenkripsi Base64');
     }
+
+    const safeMimeType = mimeType || 'image/jpeg';
 
     const apiKey = process.env.GEMINI_API_KEY;
 
@@ -374,7 +376,7 @@ Format JSON wajib berisi struktur berikut:
     const imagePart = {
       inlineData: {
         data: cleanBase64,
-        mimeType
+        mimeType: safeMimeType
       }
     };
 
