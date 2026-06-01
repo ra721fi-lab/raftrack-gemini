@@ -382,20 +382,27 @@ const Dashboard = ({ setActiveTab }) => {
                         {/* Category Color Dot */}
                         <div 
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: tx.category_color, boxShadow: `0 0 8px ${tx.category_color}` }}
+                          style={{ backgroundColor: tx.type === 'transfer' ? '#a0aec0' : tx.category_color, boxShadow: `0 0 8px ${tx.type === 'transfer' ? '#a0aec0' : tx.category_color}` }}
                         ></div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-slate-200 truncate">{tx.description || 'Transaksi Tanpa Nama'}</p>
-                          <p className="text-[9px] font-mono text-slate-500 mt-0.5 capitalize">
-                            {tx.category_name} &bull; {tx.date}
+                          <p className="text-[9px] font-mono text-slate-500 mt-0.5 uppercase flex items-center gap-1">
+                            {tx.type === 'transfer' ? (
+                              <span>{tx.payment_source} ➔ {tx.destination_source}</span>
+                            ) : (
+                              <span>{tx.category_name}</span>
+                            )}
+                            <span>&bull; {tx.date.substring(0, 10)}</span>
                           </p>
                         </div>
                       </div>
                       
                       <span className={`text-xs font-bold font-mono ${
-                        isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
+                        tx.type === 'transfer'
+                          ? 'text-slate-400 font-semibold'
+                          : (isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red')
                       }`}>
-                        {isIncome ? '+' : '-'} {formatIDR(tx.amount)}
+                        {tx.type === 'transfer' ? '⇄' : (isIncome ? '+' : '-')} {formatIDR(tx.amount)}
                       </span>
                     </div>
                   );

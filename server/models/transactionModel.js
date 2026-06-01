@@ -3,16 +3,17 @@ const CategoryModel = require('./categoryModel');
 
 class TransactionModel {
   // Membuat transaksi baru
-  static async create({ user_id, category_id, type, amount, description, date, receipt_img, payment_source }) {
+  static async create({ user_id, category_id, type, amount, description, date, receipt_img, payment_source, destination_source }) {
     const dbType = db.getDbType();
     const source = payment_source || 'cash';
+    const destination = destination_source || null;
     if (dbType === 'mysql') {
       const pool = db.getPool();
       const [result] = await pool.query(
-        'INSERT INTO transactions (user_id, category_id, type, amount, description, date, receipt_img, payment_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [user_id, category_id, type, amount, description, date, receipt_img || null, source]
+        'INSERT INTO transactions (user_id, category_id, type, amount, description, date, receipt_img, payment_source, destination_source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [user_id, category_id, type, amount, description, date, receipt_img || null, source, destination]
       );
-      return { id: result.insertId, user_id, category_id, type, amount, description, date, receipt_img, payment_source: source };
+      return { id: result.insertId, user_id, category_id, type, amount, description, date, receipt_img, payment_source: source, destination_source: destination };
     } else {
       const data = db.readLokadata();
       const newId = data.transactions.length > 0 ? Math.max(...data.transactions.map(t => t.id)) + 1 : 1;
@@ -26,6 +27,7 @@ class TransactionModel {
         date,
         receipt_img: receipt_img || null,
         payment_source: source,
+        destination_source: destination,
         created_at: new Date().toISOString()
       };
       data.transactions.push(newTransaction);
@@ -129,13 +131,13 @@ class TransactionModel {
   }
 
   // Mengubah data transaksi
-  static async update(id, { category_id, type, amount, description, date, receipt_img, payment_source }) {
+  static async update(id, { category_id, type, amount, description, date, receipt_img, payment_source, destination_source }) {
     const dbType = db.getDbType();
     if (dbType === 'mysql') {
       const pool = db.getPool();
       await pool.query(
-        'UPDATE transactions SET category_id = ?, type = ?, amount = ?, description = ?, date = ?, receipt_img = COALESCE(?, receipt_img), payment_source = ? WHERE id = ?',
-        [category_id, type, amount, description, date, receipt_img || null, payment_source || 'cash', id]
+        'UPDATE transactions SET category_id = ?, type = ?, amount = ?, description = ?, date = ?, receipt_img = COALESCE(?, receipt_img), payment_source = ?, destination_source = ? WHERE id = ?',
+        [category_id, type, amount, description, date, receipt_img || null, payment_source || 'cash', destination_source || null, id]
       );
       return this.findById(id);
     } else {
@@ -151,7 +153,8 @@ class TransactionModel {
         description,
         date,
         receipt_img: receipt_img !== undefined ? receipt_img : data.transactions[index].receipt_img,
-        payment_source: payment_source || data.transactions[index].payment_source || 'cash'
+        payment_source: payment_source || data.transactions[index].payment_source || 'cash',
+        destination_source: destination_source !== undefined ? destination_source : data.transactions[index].destination_source || null
       };
 
       db.writeLokadata(data);
@@ -182,7 +185,7 @@ class TransactionModel {
     if (dbType === 'mysql') {
       const pool = db.getPool();
       
-      // 1. Total Saldo, Pemasukan, Pengeluaran
+      // 1. Total Saldo, Pemasukan, Pengeluaran (Mengabaikan transfer secara otomatis karena SUM filter type)
       const [totals] = await pool.query(`
         SELECT 
           SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END) as total_income,
@@ -195,15 +198,16 @@ class TransactionModel {
       const totalExpense = parseFloat(totals[0].total_expense || 0);
       const balance = totalIncome - totalExpense;
 
-      // 1.5. Saldo Akun Terpisah (Bank, Wallet, Cash)
+      // 1.5. Saldo Akun Terpisah (Bank, Wallet, Cash) dengan memperhitungkan transfer (mutasi)
       const [accountTotals] = await pool.query(`
         SELECT 
           payment_source,
-          SUM(CASE WHEN type = 'pemasukan' THEN amount ELSE 0 END) as income,
-          SUM(CASE WHEN type = 'pengeluaran' THEN amount ELSE 0 END) as expense
+          destination_source,
+          type,
+          SUM(amount) as total_amount
         FROM transactions 
         WHERE user_id = ?
-        GROUP BY payment_source
+        GROUP BY payment_source, destination_source, type
       `, [user_id]);
 
       let bankBalance = 0;
@@ -211,11 +215,30 @@ class TransactionModel {
       let cashBalance = 0;
 
       accountTotals.forEach(row => {
-        const bal = parseFloat(row.income || 0) - parseFloat(row.expense || 0);
+        const amt = parseFloat(row.total_amount || 0);
+        const type = row.type;
         const src = row.payment_source || 'cash';
-        if (src === 'bank') bankBalance = bal;
-        else if (src === 'wallet') walletBalance = bal;
-        else if (src === 'cash') cashBalance = bal;
+        const dest = row.destination_source;
+
+        if (type === 'pemasukan') {
+          if (src === 'bank') bankBalance += amt;
+          else if (src === 'wallet') walletBalance += amt;
+          else if (src === 'cash') cashBalance += amt;
+        } else if (type === 'pengeluaran') {
+          if (src === 'bank') bankBalance -= amt;
+          else if (src === 'wallet') walletBalance -= amt;
+          else if (src === 'cash') cashBalance -= amt;
+        } else if (type === 'transfer') {
+          // Transfer keluar dari rekening asal
+          if (src === 'bank') bankBalance -= amt;
+          else if (src === 'wallet') walletBalance -= amt;
+          else if (src === 'cash') cashBalance -= amt;
+
+          // Transfer masuk ke rekening tujuan
+          if (dest === 'bank') bankBalance += amt;
+          else if (dest === 'wallet') walletBalance += amt;
+          else if (dest === 'cash') cashBalance += amt;
+        }
       });
 
       // 2. Pengeluaran per Kategori
@@ -274,14 +297,14 @@ class TransactionModel {
       transactions.forEach(t => {
         if (t.type === 'pemasukan') {
           totalIncome += t.amount;
-        } else {
+        } else if (t.type === 'pengeluaran') {
           totalExpense += t.amount;
         }
       });
 
       const balance = totalIncome - totalExpense;
 
-      // Saldo Akun Terpisah (Bank, Wallet, Cash) untuk Lokadata
+      // Saldo Akun Terpisah (Bank, Wallet, Cash) untuk Lokadata dengan memperhitungkan transfer
       let bankBalance = 0;
       let walletBalance = 0;
       let cashBalance = 0;
@@ -289,18 +312,30 @@ class TransactionModel {
       transactions.forEach(t => {
         const amt = t.amount;
         const src = t.payment_source || 'cash';
-        const isInc = t.type === 'pemasukan';
+        const dest = t.destination_source;
 
-        if (src === 'bank') {
-          bankBalance += isInc ? amt : -amt;
-        } else if (src === 'wallet') {
-          walletBalance += isInc ? amt : -amt;
-        } else {
-          cashBalance += isInc ? amt : -amt;
+        if (t.type === 'pemasukan') {
+          if (src === 'bank') bankBalance += amt;
+          else if (src === 'wallet') walletBalance += amt;
+          else if (src === 'cash') cashBalance += amt;
+        } else if (t.type === 'pengeluaran') {
+          if (src === 'bank') bankBalance -= amt;
+          else if (src === 'wallet') walletBalance -= amt;
+          else if (src === 'cash') cashBalance -= amt;
+        } else if (t.type === 'transfer') {
+          // Transfer keluar dari rekening asal
+          if (src === 'bank') bankBalance -= amt;
+          else if (src === 'wallet') walletBalance -= amt;
+          else if (src === 'cash') cashBalance -= amt;
+
+          // Transfer masuk ke rekening tujuan
+          if (dest === 'bank') bankBalance += amt;
+          else if (dest === 'wallet') walletBalance += amt;
+          else if (dest === 'cash') cashBalance += amt;
         }
       });
 
-      // Pengeluaran per kategori
+      // Pengeluaran per kategori (Hanya pengeluaran murni, transfer diabaikan)
       const categoryMap = {};
       transactions
         .filter(t => t.type === 'pengeluaran')
@@ -323,7 +358,7 @@ class TransactionModel {
 
       const categoryBreakdown = Object.values(categoryMap).sort((a, b) => b.value - a.value);
 
-      // Tren bulanan
+      // Tren bulanan (Hanya pemasukan & pengeluaran murni, transfer diabaikan)
       const monthlyMap = {};
       transactions.forEach(t => {
         const month = t.date.substring(0, 7); // 'YYYY-MM'
@@ -332,7 +367,7 @@ class TransactionModel {
         }
         if (t.type === 'pemasukan') {
           monthlyMap[month].pemasukan += t.amount;
-        } else {
+        } else if (t.type === 'pengeluaran') {
           monthlyMap[month].pengeluaran += t.amount;
         }
       });

@@ -33,6 +33,7 @@ const Transactions = () => {
   const [categoryName, setCategoryName] = useState(''); // Untuk Speech/OCR auto-resolve
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [paymentSource, setPaymentSource] = useState('cash'); // 'cash', 'bank', 'wallet'
+  const [destinationSource, setDestinationSource] = useState('wallet'); // 'cash', 'bank', 'wallet'
 
 
   // Kategori default
@@ -58,6 +59,7 @@ const Transactions = () => {
         setCategoryName(editingTransactionData.category_name);
         setDate(editingTransactionData.date.substring(0, 10));
         setPaymentSource(editingTransactionData.payment_source || 'cash');
+        setDestinationSource(editingTransactionData.destination_source || 'wallet');
       } else {
         setEditingId(null);
         setAmount('');
@@ -67,6 +69,7 @@ const Transactions = () => {
         setCategoryName('');
         setDate(new Date().toISOString().substring(0, 10));
         setPaymentSource('cash');
+        setDestinationSource('wallet');
       }
     }
   }, [isDrawerOpen, editingTransactionData]);
@@ -92,14 +95,20 @@ const Transactions = () => {
       return;
     }
 
+    if (type === 'transfer' && paymentSource === destinationSource) {
+      addToast('Rekening asal dan tujuan tidak boleh sama!', 'error');
+      return;
+    }
+
     const payload = {
       amount: Number(amount),
       description,
       type,
-      category_id: categoryId ? Number(categoryId) : null,
-      category_name: categoryName,
+      category_id: type === 'transfer' ? 7 : (categoryId ? Number(categoryId) : null),
+      category_name: type === 'transfer' ? 'lainnya' : categoryName,
       date,
-      payment_source: paymentSource
+      payment_source: paymentSource,
+      destination_source: type === 'transfer' ? destinationSource : null
     };
 
     try {
@@ -200,6 +209,7 @@ const Transactions = () => {
             <option value="">Semua Aliran</option>
             <option value="pemasukan">Pemasukan (+)</option>
             <option value="pengeluaran">Pengeluaran (-)</option>
+            <option value="transfer">Transfer (⇄)</option>
           </select>
 
           {/* Filter Kategori */}
@@ -283,20 +293,58 @@ const Transactions = () => {
 
                         {/* Rekening / Sumber dana */}
                         <td className="p-4 font-mono">
-                          {tx.payment_source === 'bank' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonBlue border border-neonBlue/20 bg-neonBlue/5">
-                              🏦 Bank
-                            </span>
-                          )}
-                          {tx.payment_source === 'wallet' && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonPurple border border-neonPurple/20 bg-neonPurple/5">
-                              📱 Wallet
-                            </span>
-                          )}
-                          {(tx.payment_source === 'cash' || !tx.payment_source) && (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5">
-                              💵 Cash
-                            </span>
+                          {tx.type === 'transfer' ? (
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold">
+                              {tx.payment_source === 'bank' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-neonBlue border border-neonBlue/20 bg-neonBlue/5">
+                                  🏦 BANK
+                                </span>
+                              )}
+                              {tx.payment_source === 'wallet' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-neonPurple border border-neonPurple/20 bg-neonPurple/5">
+                                  📱 WALLET
+                                </span>
+                              )}
+                              {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5">
+                                  💵 CASH
+                                </span>
+                              )}
+                              <span className="text-slate-400 font-bold">➔</span>
+                              {tx.destination_source === 'bank' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-neonBlue border border-neonBlue/20 bg-neonBlue/5">
+                                  🏦 BANK
+                                </span>
+                              )}
+                              {tx.destination_source === 'wallet' && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-neonPurple border border-neonPurple/20 bg-neonPurple/5">
+                                  📱 WALLET
+                                </span>
+                              )}
+                              {(tx.destination_source === 'cash' || !tx.destination_source) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5">
+                                  💵 CASH
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <>
+                              {tx.payment_source === 'bank' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonBlue border border-neonBlue/20 bg-neonBlue/5">
+                                  🏦 Bank
+                                </span>
+                              )}
+                              {tx.payment_source === 'wallet' && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-neonPurple border border-neonPurple/20 bg-neonPurple/5">
+                                  📱 Wallet
+                                </span>
+                              )}
+                              {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-bold text-cyanGlow border border-cyanGlow/20 bg-cyanGlow/5">
+                                  💵 Cash
+                                </span>
+                              )}
+                            </>
                           )}
                         </td>
 
@@ -307,9 +355,11 @@ const Transactions = () => {
 
                         {/* Nominal */}
                         <td className={`p-4 text-right font-mono font-bold ${
-                          isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
+                          tx.type === 'transfer'
+                            ? 'text-slate-400'
+                            : (isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red')
                         }`}>
-                          {isIncome ? '+' : '-'} {formatIDR(tx.amount)}
+                          {tx.type === 'transfer' ? '⇄' : (isIncome ? '+' : '-')} {formatIDR(tx.amount)}
                         </td>
 
                         {/* Tindakan (Edit / Hapus) */}
@@ -359,26 +409,54 @@ const Transactions = () => {
                         </span>
 
                         {/* Rekening / Sumber dana */}
-                        {tx.payment_source === 'bank' && (
-                          <span className="font-mono text-[9px] font-bold tracking-wider text-neonBlue bg-neonBlue/5 px-2 py-0.5 rounded border border-neonBlue/10">
-                            🏦 Bank
-                          </span>
-                        )}
-                        {tx.payment_source === 'wallet' && (
-                          <span className="font-mono text-[9px] font-bold tracking-wider text-neonPurple bg-neonPurple/5 px-2 py-0.5 rounded border border-neonPurple/10">
-                            📱 Wallet
-                          </span>
-                        )}
-                        {(tx.payment_source === 'cash' || !tx.payment_source) && (
-                          <span className="font-mono text-[9px] font-bold tracking-wider text-cyanGlow bg-cyanGlow/5 px-2 py-0.5 rounded border border-cyanGlow/10">
-                            💵 Cash
-                          </span>
+                        {tx.type === 'transfer' ? (
+                          <div className="flex items-center gap-1 text-[9px] font-mono font-bold">
+                            {tx.payment_source === 'bank' && (
+                              <span className="text-neonBlue bg-neonBlue/5 px-1.5 py-0.5 rounded border border-neonBlue/10">🏦 BANK</span>
+                            )}
+                            {tx.payment_source === 'wallet' && (
+                              <span className="text-neonPurple bg-neonPurple/5 px-1.5 py-0.5 rounded border border-neonPurple/10">📱 WALLET</span>
+                            )}
+                            {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                              <span className="text-cyanGlow bg-cyanGlow/5 px-1.5 py-0.5 rounded border border-cyanGlow/10">💵 CASH</span>
+                            )}
+                            <span className="text-slate-500 font-bold">➔</span>
+                            {tx.destination_source === 'bank' && (
+                              <span className="text-neonBlue bg-neonBlue/5 px-1.5 py-0.5 rounded border border-neonBlue/10">🏦 BANK</span>
+                            )}
+                            {tx.destination_source === 'wallet' && (
+                              <span className="text-neonPurple bg-neonPurple/5 px-1.5 py-0.5 rounded border border-neonPurple/10">📱 WALLET</span>
+                            )}
+                            {(tx.destination_source === 'cash' || !tx.destination_source) && (
+                              <span className="text-cyanGlow bg-cyanGlow/5 px-1.5 py-0.5 rounded border border-cyanGlow/10">💵 CASH</span>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            {tx.payment_source === 'bank' && (
+                              <span className="font-mono text-[9px] font-bold tracking-wider text-neonBlue bg-neonBlue/5 px-2 py-0.5 rounded border border-neonBlue/10">
+                                🏦 Bank
+                              </span>
+                            )}
+                            {tx.payment_source === 'wallet' && (
+                              <span className="font-mono text-[9px] font-bold tracking-wider text-neonPurple bg-neonPurple/5 px-2 py-0.5 rounded border border-neonPurple/10">
+                                📱 Wallet
+                              </span>
+                            )}
+                            {(tx.payment_source === 'cash' || !tx.payment_source) && (
+                              <span className="font-mono text-[9px] font-bold tracking-wider text-cyanGlow bg-cyanGlow/5 px-2 py-0.5 rounded border border-cyanGlow/10">
+                                💵 Cash
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                       <span className={`text-sm font-bold font-mono ${
-                        isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red'
+                        tx.type === 'transfer'
+                          ? 'text-slate-400 font-semibold'
+                          : (isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red')
                       }`}>
-                        {isIncome ? '+' : '-'} {formatIDR(tx.amount)}
+                        {tx.type === 'transfer' ? '⇄' : (isIncome ? '+' : '-')} {formatIDR(tx.amount)}
                       </span>
                     </div>
 
@@ -468,28 +546,39 @@ const Transactions = () => {
                 <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
                   Aliran Dana
                 </label>
-                <div className="grid grid-cols-2 gap-2.5 p-1 rounded-xl bg-black/40 border border-white/5">
+                <div className="grid grid-cols-3 gap-2 p-1 rounded-xl bg-black/40 border border-white/5">
                   <button
                     type="button"
                     onClick={() => setType('pengeluaran')}
-                    className={`py-2 rounded-lg text-xs font-bold font-mono transition-all ${
+                    className={`py-2 rounded-lg text-[10px] font-bold font-mono transition-all ${
                       type === 'pengeluaran'
                         ? 'bg-neonRed text-white shadow-neon-red'
                         : 'text-slate-500 hover:text-slate-300'
                     }`}
                   >
-                    PENGELUARAN (-)
+                    PENGELUARAN
                   </button>
                   <button
                     type="button"
                     onClick={() => setType('pemasukan')}
-                    className={`py-2 rounded-lg text-xs font-bold font-mono transition-all ${
+                    className={`py-2 rounded-lg text-[10px] font-bold font-mono transition-all ${
                       type === 'pemasukan'
                         ? 'bg-cyanGlow text-darkSpace-900 shadow-neon-cyan'
                         : 'text-slate-500 hover:text-slate-300'
                     }`}
                   >
-                    PEMASUKAN (+)
+                    PEMASUKAN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setType('transfer')}
+                    className={`py-2 rounded-lg text-[10px] font-bold font-mono transition-all ${
+                      type === 'transfer'
+                        ? 'bg-neonPurple text-white shadow-neon-purple'
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    TRANSFER
                   </button>
                 </div>
               </div>
@@ -510,31 +599,33 @@ const Transactions = () => {
               </div>
 
               {/* Kategori */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
-                  Pilih Kategori
-                </label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => {
-                    setCategoryId(e.target.value);
-                    const selected = defaultCategories.find(c => c.id === Number(e.target.value));
-                    if (selected) setCategoryName(selected.name);
-                  }}
-                  className="w-full py-2.5 px-4 text-sm glass-input focus:border-neonPurple focus:shadow-neon-purple capitalize cursor-pointer"
-                  required
-                >
-                  <option value="" disabled>-- Pilih Kategori --</option>
-                  {defaultCategories.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              {type !== 'transfer' && (
+                <div className="flex flex-col gap-1.5 animate-fade-in">
+                  <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
+                    Pilih Kategori
+                  </label>
+                  <select
+                    value={categoryId}
+                    onChange={(e) => {
+                      setCategoryId(e.target.value);
+                      const selected = defaultCategories.find(c => c.id === Number(e.target.value));
+                      if (selected) setCategoryName(selected.name);
+                    }}
+                    className="w-full py-2.5 px-4 text-sm glass-input focus:border-neonPurple focus:shadow-neon-purple capitalize cursor-pointer"
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Kategori --</option>
+                    {defaultCategories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {/* Rekening / Sumber Dana */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
-                  Sumber Rekening / Wallet
+                  {type === 'transfer' ? 'Rekening Asal' : 'Sumber Rekening / Wallet'}
                 </label>
                 <div className="grid grid-cols-3 gap-2.5 p-1 rounded-xl bg-black/40 border border-white/5">
                   <button
@@ -575,6 +666,53 @@ const Transactions = () => {
                   </button>
                 </div>
               </div>
+
+              {/* Rekening Tujuan (Hanya jika transfer) */}
+              {type === 'transfer' && (
+                <div className="flex flex-col gap-1.5 animate-fade-in">
+                  <label className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-widest pl-1">
+                    Rekening Tujuan
+                  </label>
+                  <div className="grid grid-cols-3 gap-2.5 p-1 rounded-xl bg-black/40 border border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setDestinationSource('bank')}
+                      className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                        destinationSource === 'bank'
+                          ? 'bg-neonBlue text-darkSpace-900 shadow-neon-blue'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-sm">🏦</span>
+                      <span>BANK</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationSource('wallet')}
+                      className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                        destinationSource === 'wallet'
+                          ? 'bg-neonPurple text-white shadow-neon-purple'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-sm">📱</span>
+                      <span>WALLET</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDestinationSource('cash')}
+                      className={`py-2.5 rounded-lg text-[10px] font-bold font-mono transition-all flex flex-col items-center justify-center gap-1 ${
+                        destinationSource === 'cash'
+                          ? 'bg-cyanGlow text-darkSpace-900 shadow-neon-cyan'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <span className="text-sm">💵</span>
+                      <span>CASH</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Deskripsi */}
               <div className="flex flex-col gap-1.5">

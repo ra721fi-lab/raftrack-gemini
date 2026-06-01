@@ -37,12 +37,13 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `user_id` INT NOT NULL,
   `category_id` INT NOT NULL,
-  `type` ENUM('pemasukan', 'pengeluaran') NOT NULL,
+  `type` VARCHAR(50) NOT NULL,
   `amount` DECIMAL(15, 2) NOT NULL,
   `description` VARCHAR(255) DEFAULT NULL,
   `date` DATE NOT NULL,
   `receipt_img` LONGTEXT DEFAULT NULL, -- Untuk menyimpan base64 atau path gambar struk
-  `payment_source` VARCHAR(50) NOT NULL DEFAULT 'cash', -- Sumber rekening (bank, wallet, cash)
+  `payment_source` VARCHAR(50) NOT NULL DEFAULT 'cash', -- Sumber rekening asal (bank, wallet, cash)
+  `destination_source` VARCHAR(50) DEFAULT NULL, -- Sumber rekening tujuan (untuk transfer)
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE CASCADE
