@@ -9,7 +9,7 @@ export const getApiUrl = () => {
   }
   return import.meta.env.DEV
     ? '' // Menggunakan proxy Vite lokal pada saat Development
-    : (import.meta.env.VITE_API_URL || 'https://raftrack-gemini-production.up.railway.app');
+    : (import.meta.env.VITE_API_URL || 'http://150.109.19.197');
 };
 
 export const setCustomApiUrl = (url) => {
