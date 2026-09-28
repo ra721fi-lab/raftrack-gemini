@@ -10,6 +10,7 @@ import Header from './components/Header';
 import AIChatbot from './components/AIChatbot';
 import Toast from './components/Toast';
 import PWAInstallModal from './components/PWAInstallModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { AlertCircle } from 'lucide-react';
 
 function App() {
@@ -71,11 +72,13 @@ function App() {
 
             {/* Halaman yang sedang aktif */}
             <main className="flex-grow py-4">
-              {activeTab === 'dashboard' ? (
-                <Dashboard setActiveTab={setActiveTab} />
-              ) : (
-                <Transactions />
-              )}
+              <ErrorBoundary>
+                {activeTab === 'dashboard' ? (
+                  <Dashboard setActiveTab={setActiveTab} />
+                ) : (
+                  <Transactions />
+                )}
+              </ErrorBoundary>
             </main>
           </div>
 

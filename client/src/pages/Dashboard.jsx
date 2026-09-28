@@ -1,12 +1,12 @@
 import React, { useContext } from 'react';
-import { TransactionContext } from '../context/TransactionContext';
+import { TransactionContext, DEFAULT_STATS } from '../context/TransactionContext';
 import { 
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from 'recharts';
 import { 
   Wallet, ArrowDownLeft, ArrowUpRight, Cpu, 
-  Sparkles, TrendingUp, AlertTriangle, Lightbulb, FileText, Printer, ArrowRight
+  Sparkles, TrendingUp, AlertTriangle, Lightbulb, FileText, Printer, ArrowRight, RefreshCw
 } from 'lucide-react';
 
 // Format mata uang Rupiah
@@ -15,37 +15,42 @@ const formatIDR = (value) => {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0
-  }).format(value);
+  }).format(value || 0);
+};
+
+// Helper format tanggal aman
+const formatDateSafe = (dateVal) => {
+  if (!dateVal) return 'Hari ini';
+  try {
+    if (typeof dateVal === 'string') return dateVal.substring(0, 10);
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? 'Hari ini' : d.toISOString().substring(0, 10);
+  } catch {
+    return 'Hari ini';
+  }
 };
 
 const Dashboard = ({ setActiveTab }) => {
-  const { stats, transactions, statsLoading, downloadCSV } = useContext(TransactionContext);
+  const { stats, transactions = [], statsLoading, downloadCSV, refreshData } = useContext(TransactionContext);
 
-  // Loading indicator hanya jika data benar-benar belum siap dan sedang dimuat
-  if (statsLoading && !stats) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="w-12 h-12 border-4 border-t-neonBlue border-r-neonBlue/30 rounded-full animate-spin"></div>
-        <p className="mt-4 text-xs font-mono text-slate-400 tracking-wider">MENGAGREGASI METRIK FINANSIAL AI...</p>
-      </div>
-    );
-  }
+  const safeStats = stats || DEFAULT_STATS;
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
   // Persiapan data Chart Tren
-  const chartData = stats.monthlyTrend && stats.monthlyTrend.length > 0
-    ? stats.monthlyTrend
+  const chartData = safeStats.monthlyTrend && safeStats.monthlyTrend.length > 0
+    ? safeStats.monthlyTrend
     : [
-        { name: 'Bulan 1', pemasukan: 0, pengeluaran: 0 },
+        { name: 'Periode Berjalan', pemasukan: safeStats.totalIncome || 0, pengeluaran: safeStats.totalExpense || 0 },
       ];
 
   // Persiapan data Chart Kategori
-  const pieData = stats.categoryBreakdown && stats.categoryBreakdown.length > 0
-    ? stats.categoryBreakdown
+  const pieData = safeStats.categoryBreakdown && safeStats.categoryBreakdown.length > 0
+    ? safeStats.categoryBreakdown
     : [
         { name: 'Belum Ada Pengeluaran', value: 1, color: '#a0aec0' }
       ];
 
-  const recentTransactions = transactions.slice(0, 5);
+  const recentTransactions = safeTransactions.slice(0, 5);
 
   return (
     <div className="flex flex-col gap-6 font-sans">
@@ -63,7 +68,7 @@ const Dashboard = ({ setActiveTab }) => {
             </div>
           </div>
           <h3 className="text-2xl font-bold tracking-tight text-white font-mono leading-none">
-            {formatIDR(stats.balance)}
+            {formatIDR(safeStats.balance)}
           </h3>
           <p className="text-[10px] text-cyanGlow font-mono mt-2 flex items-center gap-1 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-cyanGlow animate-pulse"></span>
@@ -81,7 +86,7 @@ const Dashboard = ({ setActiveTab }) => {
             </div>
           </div>
           <h3 className="text-2xl font-bold tracking-tight text-slate-200 font-mono leading-none">
-            {formatIDR(stats.totalIncome)}
+            {formatIDR(safeStats.totalIncome)}
           </h3>
           <p className="text-[10px] text-slate-500 font-mono mt-2 uppercase">
             Periode Berjalan
@@ -98,7 +103,7 @@ const Dashboard = ({ setActiveTab }) => {
             </div>
           </div>
           <h3 className="text-2xl font-bold tracking-tight text-slate-200 font-mono leading-none">
-            {formatIDR(stats.totalExpense)}
+            {formatIDR(safeStats.totalExpense)}
           </h3>
           <p className="text-[10px] text-slate-500 font-mono mt-2 uppercase">
             Akumulasi Pengeluaran
@@ -134,7 +139,7 @@ const Dashboard = ({ setActiveTab }) => {
               </div>
             </div>
             <span className="text-sm font-bold text-neonBlue font-mono">
-              {formatIDR(stats.bankBalance || 0)}
+              {formatIDR(safeStats.bankBalance || 0)}
             </span>
           </div>
 
@@ -150,7 +155,7 @@ const Dashboard = ({ setActiveTab }) => {
               </div>
             </div>
             <span className="text-sm font-bold text-neonPurple font-mono">
-              {formatIDR(stats.walletBalance || 0)}
+              {formatIDR(safeStats.walletBalance || 0)}
             </span>
           </div>
 
@@ -166,7 +171,7 @@ const Dashboard = ({ setActiveTab }) => {
               </div>
             </div>
             <span className="text-sm font-bold text-cyanGlow font-mono">
-              {formatIDR(stats.cashBalance || 0)}
+              {formatIDR(safeStats.cashBalance || 0)}
             </span>
           </div>
         </div>
@@ -249,7 +254,7 @@ const Dashboard = ({ setActiveTab }) => {
             {/* Center Summary Text inside Pie Chart */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Akumulasi</span>
-              <span className="text-sm font-bold text-white font-mono">{formatIDR(stats.totalExpense)}</span>
+              <span className="text-sm font-bold text-white font-mono">{formatIDR(safeStats.totalExpense)}</span>
             </div>
           </div>
 
@@ -278,9 +283,11 @@ const Dashboard = ({ setActiveTab }) => {
 
           {/* AI ALERTS (NOTIFIKASI PENGELUARAN) */}
           <div className="flex flex-col gap-3">
-            {stats.insights && stats.insights.map((insight, idx) => {
+            {safeStats.insights && safeStats.insights.map((insight, idx) => {
+              if (!insight) return null;
               const isWarning = insight.type === 'WARNING';
               const isSuccess = insight.type === 'SUCCESS';
+              const message = typeof insight === 'string' ? insight : (insight.message || '');
               
               return (
                 <div 
@@ -294,7 +301,7 @@ const Dashboard = ({ setActiveTab }) => {
                   }`}
                 >
                   <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                  <p dangerouslySetInnerHTML={{ __html: insight.message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}></p>
+                  <p dangerouslySetInnerHTML={{ __html: message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }}></p>
                 </div>
               );
             })}
@@ -307,25 +314,25 @@ const Dashboard = ({ setActiveTab }) => {
               Saran Penghematan AI
             </h5>
             <ul className="list-disc pl-4 text-xs text-slate-300 space-y-1.5 mt-1 leading-relaxed">
-              {stats.savingTips && stats.savingTips.map((tip, idx) => (
+              {safeStats.savingTips && safeStats.savingTips.map((tip, idx) => (
                 <li key={idx}>{tip}</li>
               ))}
             </ul>
           </div>
 
           {/* PREDICTION METRIC */}
-          {stats.predictions && stats.predictions.predictedExpense > 0 && (
+          {safeStats.predictions && safeStats.predictions.predictedExpense > 0 && (
             <div className="mt-2 p-3 rounded-xl border border-neonPurple/20 bg-neonPurple/5 flex items-center justify-between text-xs font-mono">
               <div>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest">Prediksi Pengeluaran Depan</p>
                 <p className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-neonPurple to-neonBlue mt-0.5">
-                  {formatIDR(stats.predictions.predictedExpense)}
+                  {formatIDR(safeStats.predictions.predictedExpense)}
                 </p>
               </div>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
-                stats.predictions.confidence === 'HIGH' ? 'bg-cyanGlow/10 text-cyanGlow' : 'bg-amber-500/10 text-amber-500'
+                safeStats.predictions.confidence === 'HIGH' ? 'bg-cyanGlow/10 text-cyanGlow' : 'bg-amber-500/10 text-amber-500'
               }`}>
-                CONFIDENCE: {stats.predictions.confidence}
+                CONFIDENCE: {safeStats.predictions.confidence}
               </span>
             </div>
           )}
@@ -372,27 +379,32 @@ const Dashboard = ({ setActiveTab }) => {
             ) : (
               <div className="flex flex-col gap-2">
                 {recentTransactions.map((tx) => {
+                  if (!tx) return null;
                   const isIncome = tx.type === 'pemasukan';
+                  const catColor = tx.category_color || '#00f2fe';
                   return (
                     <div 
-                      key={tx.id} 
+                      key={tx.id || Math.random()} 
                       className="flex items-center justify-between p-3.5 rounded-xl border border-white/5 bg-black/10 hover:bg-white/5 transition-all duration-300"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Category Color Dot */}
                         <div 
                           className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: tx.type === 'transfer' ? '#a0aec0' : tx.category_color, boxShadow: `0 0 8px ${tx.type === 'transfer' ? '#a0aec0' : tx.category_color}` }}
+                          style={{ 
+                            backgroundColor: tx.type === 'transfer' ? '#a0aec0' : catColor, 
+                            boxShadow: `0 0 8px ${tx.type === 'transfer' ? '#a0aec0' : catColor}` 
+                          }}
                         ></div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-slate-200 truncate">{tx.description || 'Transaksi Tanpa Nama'}</p>
                           <p className="text-[9px] font-mono text-slate-500 mt-0.5 uppercase flex items-center gap-1">
                             {tx.type === 'transfer' ? (
-                              <span>{tx.payment_source} ➔ {tx.destination_source}</span>
+                              <span>{tx.payment_source || 'cash'} ➔ {tx.destination_source || 'wallet'}</span>
                             ) : (
-                              <span>{tx.category_name}</span>
+                              <span>{tx.category_name || 'Lainnya'}</span>
                             )}
-                            <span>&bull; {tx.date.substring(0, 10)}</span>
+                            <span>&bull; {formatDateSafe(tx.date)}</span>
                           </p>
                         </div>
                       </div>
@@ -402,7 +414,7 @@ const Dashboard = ({ setActiveTab }) => {
                           ? 'text-slate-400 font-semibold'
                           : (isIncome ? 'text-cyanGlow neon-text-cyan' : 'text-neonRed neon-text-red')
                       }`}>
-                        {tx.type === 'transfer' ? '⇄' : (isIncome ? '+' : '-')} {formatIDR(tx.amount)}
+                        {tx.type === 'transfer' ? '⇄' : (isIncome ? '+' : '-')} {formatIDR(tx.amount || 0)}
                       </span>
                     </div>
                   );
