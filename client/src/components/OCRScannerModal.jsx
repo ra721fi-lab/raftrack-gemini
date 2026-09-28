@@ -71,7 +71,40 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
     }
   };
 
-  // Handler untuk mengunggah file kustom sendiri (Gemini AI Multimodal OCR!)
+  // Helper kompresi gambar di browser agar pemindaian kilat & tidak memicu timeout
+  const compressImage = (file, maxWidth = 1200, quality = 0.85) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          if (width > maxWidth || height > maxWidth) {
+            if (width > height) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            } else {
+              width = Math.round((width * maxWidth) / height);
+              height = maxWidth;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
+      };
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handler untuk mengunggah file kustom sendiri (NVIDIA AI Multimodal OCR!)
   const handleCustomUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -80,64 +113,67 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
     setScanning(true);
     setScannedData(null);
 
-    // Membaca file gambar dan mengonversinya menjadi Base64
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      try {
-        if (addToast) addToast('Mengaktifkan NVIDIA AI Vision OCR. Menganalisis struk...', 'info');
+    try {
+      if (addToast) addToast('Mengoptimalkan struk & mengaktifkan NVIDIA AI Vision OCR...', 'info');
 
-        const base64String = reader.result;
-        const token = localStorage.getItem('raftrack_token');
+      // Kompresi instan di sisi browser (mengurangi ukuran 5MB -> ~150KB agar bebas timeout)
+      const base64String = await compressImage(file, 1200, 0.85);
+      const token = localStorage.getItem('raftrack_token');
 
-        const response = await fetch(`${API_URL}/api/analytics/ocr`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            image: base64String,
-            mimeType: file.type
-          })
-        });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
-        const resData = await response.json();
+      const response = await fetch(`${API_URL}/api/analytics/ocr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          image: base64String,
+          mimeType: 'image/jpeg'
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-        if (!response.ok || !resData.success) {
-          throw new Error(resData.message || 'Gagal menganalisis struk');
-        }
+      const resData = await response.json();
 
-        const ocrData = resData.data;
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.message || 'Gagal menganalisis struk');
+      }
 
-        const parsedReceipt = {
-          id: 'nvidia_parsed',
-          name: ocrData.merchant || 'Struk Retail',
-          date: ocrData.date || new Date().toISOString().substring(0, 10),
-          amount: Number(ocrData.amount || 0),
-          category_name: ocrData.category || 'lainnya',
-          description: ocrData.description || `Belanja di ${ocrData.merchant || 'Retail'}`,
-          color: '#00f2fe',
-          items: ocrData.items || ['1x Produk Belanja'],
-          source: resData.source || 'nvidia',
-          model: resData.model || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning'
-        };
+      const ocrData = resData.data;
 
-        setScanning(false);
-        setScannedData(parsedReceipt);
-        const sourceLabel = resData.source === 'nvidia' ? 'NVIDIA AI' : (resData.source === 'gemini' ? 'Gemini AI' : 'AI OCR');
-        if (addToast) addToast(`${sourceLabel} sukses mendeteksi struk ${parsedReceipt.name}!`, 'success');
+      const parsedReceipt = {
+        id: 'nvidia_parsed',
+        name: ocrData.merchant || 'Struk Retail',
+        date: ocrData.date || new Date().toISOString().substring(0, 10),
+        amount: Number(ocrData.amount || 0),
+        category_name: ocrData.category || 'lainnya',
+        description: ocrData.description || `Belanja di ${ocrData.merchant || 'Retail'}`,
+        color: '#00f2fe',
+        items: ocrData.items || ['1x Produk Belanja'],
+        source: resData.source || 'nvidia',
+        model: resData.model || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning'
+      };
 
-      } catch (err) {
-        console.error('[Gemini AI OCR Error, beralih ke Fallback Simulator]:', err);
-        
-        // Fallback Simulator Cerdas jika koneksi internet terganggu/server tidak merespon
-        const cleanName = file.name.replace(/\.[^/.]+$/, "").substring(0, 20);
-        const fallbackReceipt = {
-          id: 'custom_fallback',
-          name: cleanName || 'Struk Ritel',
-          date: new Date().toISOString().substring(0, 10),
-          amount: Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000,
-          category_name: 'makanan',
+      setScanning(false);
+      setScannedData(parsedReceipt);
+      const sourceLabel = resData.source === 'nvidia' ? 'NVIDIA AI' : (resData.source === 'gemini' ? 'Gemini AI' : 'AI OCR');
+      if (addToast) addToast(`${sourceLabel} sukses mendeteksi struk ${parsedReceipt.name}!`, 'success');
+
+    } catch (err) {
+      console.error('[NVIDIA AI OCR Error, beralih ke Fallback Cerdas]:', err);
+      
+      // Fallback Simulator Cerdas jika koneksi internet terganggu/server tidak merespon
+      const cleanName = file.name.replace(/\.[^/.]+$/, "").substring(0, 20);
+      const fallbackReceipt = {
+        id: 'custom_fallback',
+        name: cleanName || 'Struk Ritel',
+        date: new Date().toISOString().substring(0, 10),
+        amount: Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000,
+        category_name: 'makanan',
           description: `Belanja ${cleanName || 'Kustom'}`,
           color: '#00f2fe',
           items: ['1x Item Terdeteksi', '1x Pajak PPN 11%']
@@ -147,14 +183,6 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
         setScannedData(fallbackReceipt);
         if (addToast) addToast(`Pemindaian selesai (Mode Simulator Fallback)`, 'info');
       }
-    };
-
-    reader.onerror = () => {
-      setScanning(false);
-      if (addToast) addToast('Gagal membaca file gambar', 'error');
-    };
-
-    reader.readAsDataURL(file);
   };
 
   return (

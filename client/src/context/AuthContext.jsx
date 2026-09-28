@@ -28,11 +28,16 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         const response = await fetch(`${API_URL}/api/auth/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
-          }
+          },
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           const data = await response.json();

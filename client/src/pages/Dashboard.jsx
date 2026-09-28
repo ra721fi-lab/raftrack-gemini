@@ -21,8 +21,8 @@ const formatIDR = (value) => {
 const Dashboard = ({ setActiveTab }) => {
   const { stats, transactions, statsLoading, downloadCSV } = useContext(TransactionContext);
 
-  // Loading indicator untuk stats
-  if (statsLoading || !stats) {
+  // Loading indicator hanya jika data benar-benar belum siap dan sedang dimuat
+  if (statsLoading && !stats) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="w-12 h-12 border-4 border-t-neonBlue border-r-neonBlue/30 rounded-full animate-spin"></div>

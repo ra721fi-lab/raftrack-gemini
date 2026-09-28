@@ -4,11 +4,38 @@ import { API_URL } from '../config';
 
 export const TransactionContext = createContext();
 
+export const DEFAULT_STATS = {
+  balance: 0,
+  totalIncome: 0,
+  totalExpense: 0,
+  cashBalance: 0,
+  bankBalance: 0,
+  walletBalance: 0,
+  monthlyTrend: [],
+  categoryBreakdown: [],
+  insights: [],
+  savingTips: [
+    'Gunakan metode penganggaran 50/30/20: 50% Kebutuhan Pokok, 30% Keinginan, 20% Tabungan/Investasi.',
+    'Catat setiap pengeluaran kecil secara rutin untuk mencegah kebocoran anggaran.'
+  ],
+  predictions: {
+    predictedExpense: 0,
+    confidence: 'LOW'
+  }
+};
+
 export const TransactionProvider = ({ children }) => {
   const { token, isAuthenticated } = useContext(AuthContext);
   
   const [transactions, setTransactions] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(() => {
+    try {
+      const cached = localStorage.getItem('raftrack_cached_stats');
+      return cached ? JSON.parse(cached) : DEFAULT_STATS;
+    } catch {
+      return DEFAULT_STATS;
+    }
+  });
   const [loading, setLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,7 +59,7 @@ export const TransactionProvider = ({ children }) => {
     }, 4000);
   };
 
-  // 1. Fetch data semua transaksi berdasarkan filter
+  // 1. Fetch data semua transaksi berdasarkan filter (dengan proteksi timeout 10 detik)
   const fetchTransactions = async () => {
     if (!isAuthenticated || !token) return;
     setLoading(true);
@@ -44,34 +71,47 @@ export const TransactionProvider = ({ children }) => {
       if (filters.startDate) queryParams.append('startDate', filters.startDate);
       if (filters.endDate) queryParams.append('endDate', filters.endDate);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${API_URL}/api/transactions?${queryParams.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       const data = await response.json();
       if (response.ok && data.success) {
-        setTransactions(data.transactions);
+        setTransactions(data.transactions || []);
       }
     } catch (err) {
-      console.error('[Transaction Context] Gagal memuat transaksi:', err);
+      console.warn('[Transaction Context] Gagal memuat transaksi:', err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. Fetch statistik & AI insight keuangan
+  // 2. Fetch statistik & AI insight keuangan (dengan proteksi timeout 10 detik)
   const fetchStats = async () => {
     if (!isAuthenticated || !token) return;
     setStatsLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(`${API_URL}/api/analytics/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       const data = await response.json();
-      if (response.ok && data.success) {
+      if (response.ok && data.success && data.stats) {
         setStats(data.stats);
+        localStorage.setItem('raftrack_cached_stats', JSON.stringify(data.stats));
       }
     } catch (err) {
-      console.error('[Transaction Context] Gagal memuat statistik:', err);
+      console.warn('[Transaction Context] Gagal memuat statistik:', err.message);
     } finally {
       setStatsLoading(false);
     }
