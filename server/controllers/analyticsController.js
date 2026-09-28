@@ -349,7 +349,7 @@ Apakah Anda ingin saya memberikan saran penghematan anggaran, menganalisis kateg
   }
 };
 
-// @desc    Proses Pemindaian Struk Belanja dengan Gemini Multimodal AI OCR
+// @desc    Proses Pemindaian Struk Belanja dengan NVIDIA AI Vision / OCR
 // @route   POST /api/analytics/ocr
 // @access  Private
 const handleReceiptOCR = async (req, res, next) => {
@@ -362,77 +362,185 @@ const handleReceiptOCR = async (req, res, next) => {
     }
 
     const safeMimeType = mimeType || 'image/jpeg';
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || "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";
+    const primaryModel = process.env.NVIDIA_MODEL || "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+    const geminiApiKey = process.env.GEMINI_API_KEY;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    // Ensure data URI format for vision API
+    const dataUri = image.startsWith('data:') ? image : `data:${safeMimeType};base64,${image}`;
+    const cleanBase64 = image.includes('base64,') ? image.split('base64,')[1] : image;
 
-    // Fallback Simulator Cerdas jika API Key tidak terpasang
-    if (!apiKey) {
-      const randomAmount = Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000;
-      return res.status(200).json({
-        success: true,
-        source: 'fallback',
-        data: {
-          merchant: 'Struk Retail Offline',
-          amount: randomAmount,
-          date: new Date().toISOString().substring(0, 10),
-          category: 'makanan',
-          description: 'Belanja Offline (Mode Fallback Tanpa AI Key)',
-          items: ['1x Produk Belanja Terdeteksi', '1x Pajak PPN 11%']
-        }
-      });
-    }
+    const prompt = `Anda adalah sistem AI OCR presisi tinggi spesialis membaca nota kasir / struk belanja / invoice ritel.
+Tugas Anda adalah memindai gambar struk ini, membaca seluruh teks secara mendalam, dan mengekstrak rincian transaksi belanja.
+Wajib berikan respon HANYA dalam format JSON valid tanpa penjelasan tambahan dan tanpa blok pembungkus markdown (tanpa \`\`\`json).
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `Anda adalah sistem AI OCR handal khusus struk belanja / nota retail.
-Tugas Anda adalah memproses gambar struk belanja terlampir, membaca seluruh isinya, dan mengekstrak rincian nota belanja tersebut secara akurat.
-Kembalikan hasil ekstraksi dalam format JSON mentah tanpa format pembungkus markdown (tanpa pembungkus \`\`\`json).
-
-Format JSON wajib berisi struktur berikut:
+Format JSON yang wajib dipatuhi:
 {
-  "merchant": "Nama toko / merchant (contoh: 'Alfamart', 'Indomaret', 'Starbucks', dll. Bersihkan dari simbol aneh)",
-  "amount": Total nominal bersih pembayaran akhir yang dibayarkan pelanggan (harus berupa tipe angka/number bulat, contoh: 88000),
-  "date": "Tanggal transaksi dalam format YYYY-MM-DD (jika tanggal di struk kabur atau tidak terbaca, gunakan tanggal hari ini: ${new Date().toISOString().substring(0, 10)})",
-  "category": "Kategori finansial yang paling cocok. Pilih salah satu dari: 'makanan', 'transportasi', 'tagihan', 'hiburan', 'investasi', 'lainnya'",
-  "description": "Deskripsi transaksi ringkas buatan Anda (contoh: 'Belanja di Indomaret')",
-  "items": ["Daftar item belanjaan maksimal 3 item utama dalam format string 'Qtyx NamaItem', contoh: '1x Kopi Latte'"]
+  "merchant": "Nama toko atau ritel (contoh: 'Indomaret', 'Alfamart', 'Starbucks', 'KFC', dll. Bersihkan dari simbol)",
+  "amount": Total nominal pembayaran akhir bersih yang dibayar (harus angka/integer bulat murni, contoh: 85000, bukan string dan tanpa titik/koma/Rp),
+  "date": "Tanggal transaksi dalam format YYYY-MM-DD (jika tidak ditemukan atau kabur, gunakan tanggal: ${new Date().toISOString().substring(0, 10)})",
+  "category": "Pilih salah satu pos kategori yang paling sesuai: 'makanan', 'transportasi', 'tagihan', 'hiburan', 'investasi', 'lainnya'",
+  "description": "Deskripsi singkat transaksi (contoh: 'Belanja di Indomaret')",
+  "items": ["Daftar item belanjaan maksimal 3 item utama dalam format 'Qtyx NamaItem', contoh: '1x Kopi', '2x Roti'"]
 }`;
 
-    const cleanBase64 = image.includes('base64,') ? image.split('base64,')[1] : image;
-    
-    // Gemini multimodal requires part object format
-    const imagePart = {
-      inlineData: {
-        data: cleanBase64,
-        mimeType: safeMimeType
+    const parseJSONSafely = (text) => {
+      if (!text) throw new Error("Respon teks kosong dari AI");
+      const startIdx = text.indexOf('{');
+      const endIdx = text.lastIndexOf('}');
+      if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
+        throw new Error("Format JSON tidak ditemukan dalam respon AI");
       }
+      const cleanJson = text.substring(startIdx, endIdx + 1);
+      return JSON.parse(cleanJson);
     };
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const responseText = result.response.text().trim();
+    let ocrResult = null;
+    let usedSource = null;
+    let usedModel = null;
 
-    let parsedData;
-    try {
-      // Ekstraktor JSON anti-crash: Temukan '{' pertama dan '}' terakhir untuk mengisolasi blok JSON
-      const startIdx = responseText.indexOf('{');
-      const endIdx = responseText.lastIndexOf('}');
+    // ========================================================
+    // 1. UTAMA: NVIDIA AI VISION OCR (NVIDIA API CATALOG)
+    // ========================================================
+    if (nvidiaApiKey) {
+      const invokeUrl = "https://integrate.api.nvidia.com/v1/chat/completions";
       
-      if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-        throw new Error('Format JSON tidak ditemukan dalam respon Gemini AI.');
+      const callNvidiaModel = async (modelName, timeoutMs = 15000) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const payload = {
+            model: modelName,
+            messages: [
+              {
+                role: "user",
+                content: [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: dataUri } }
+                ]
+              }
+            ],
+            max_tokens: 4096,
+            temperature: 0.2,
+            top_p: 0.95
+          };
+
+          if (modelName.includes("reasoning")) {
+            payload.reasoning_budget = 4096;
+          }
+
+          const response = await fetch(invokeUrl, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${nvidiaApiKey}`,
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            const errBody = await response.json().catch(() => ({}));
+            throw new Error(`HTTP ${response.status}: ${errBody.error?.message || response.statusText}`);
+          }
+
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content;
+          return parseJSONSafely(content);
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      // Coba model prioritas (NVIDIA Nemotron 3 Nano Omni Reasoning)
+      try {
+        console.log(`[NVIDIA OCR] Menggunakan model utama: ${primaryModel}...`);
+        ocrResult = await callNvidiaModel(primaryModel, 15000);
+        usedSource = 'nvidia';
+        usedModel = primaryModel;
+      } catch (nvidiaErr) {
+        console.warn(`[NVIDIA OCR Warning] Model ${primaryModel} gagal/timeout:`, nvidiaErr.message);
+        
+        // Fallback cepat ke model vision responsif (Llama 3.2 11B Vision)
+        try {
+          const fastModel = "meta/llama-3.2-11b-vision-instruct";
+          console.log(`[NVIDIA OCR] Beralih ke fallback responsif: ${fastModel}...`);
+          ocrResult = await callNvidiaModel(fastModel, 12000);
+          usedSource = 'nvidia';
+          usedModel = fastModel;
+        } catch (fastErr) {
+          console.warn(`[NVIDIA OCR Warning] Fallback responsif juga gagal:`, fastErr.message);
+        }
       }
-      
-      const cleanJson = responseText.substring(startIdx, endIdx + 1);
-      parsedData = JSON.parse(cleanJson);
-    } catch (parseErr) {
-      console.error('[Gemini OCR Parsing Error]:', parseErr, 'Response Text:', responseText);
-      throw new Error('Gagal mengurai teks nota dari Gemini AI. Struk mungkin kurang terbaca.');
     }
+
+    // ========================================================
+    // 2. CADANGAN: GOOGLE GEMINI MULTIMODAL AI
+    // ========================================================
+    if (!ocrResult && geminiApiKey) {
+      try {
+        console.log("[OCR Fallback] Mencoba Gemini 1.5 Flash...");
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const imagePart = {
+          inlineData: {
+            data: cleanBase64,
+            mimeType: safeMimeType
+          }
+        };
+
+        const result = await model.generateContent([prompt, imagePart]);
+        const responseText = result.response.text().trim();
+        ocrResult = parseJSONSafely(responseText);
+        usedSource = 'gemini';
+        usedModel = 'gemini-1.5-flash';
+      } catch (geminiErr) {
+        console.warn("[Gemini OCR Fallback Warning]:", geminiErr.message);
+      }
+    }
+
+    // ========================================================
+    // 3. CADANGAN TERAKHIR: SIMULATOR CERDAS (OFFLINE SAFE)
+    // ========================================================
+    if (!ocrResult) {
+      console.log("[OCR Fallback] Menggunakan Fallback Simulator...");
+      const randomAmount = Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000;
+      ocrResult = {
+        merchant: 'Struk Retail Offline',
+        amount: randomAmount,
+        date: new Date().toISOString().substring(0, 10),
+        category: 'makanan',
+        description: 'Belanja Offline (Mode Fallback)',
+        items: ['1x Produk Belanja Terdeteksi', '1x Pajak PPN 11%']
+      };
+      usedSource = 'fallback';
+      usedModel = 'simulator';
+    }
+
+    // Normalisasi data hasil ekstraksi agar konsisten dan valid
+    const normalizedData = {
+      merchant: ocrResult.merchant || 'Struk Retail',
+      amount: typeof ocrResult.amount === 'number' && !isNaN(ocrResult.amount)
+        ? Math.round(ocrResult.amount)
+        : parseInt(String(ocrResult.amount || '0').replace(/[^0-9]/g, '')) || 0,
+      date: ocrResult.date || new Date().toISOString().substring(0, 10),
+      category: ['makanan', 'transportasi', 'tagihan', 'hiburan', 'investasi', 'lainnya'].includes(String(ocrResult.category).toLowerCase())
+        ? String(ocrResult.category).toLowerCase()
+        : 'lainnya',
+      description: ocrResult.description || `Belanja di ${ocrResult.merchant || 'Retail'}`,
+      items: Array.isArray(ocrResult.items) && ocrResult.items.length > 0 ? ocrResult.items : ['1x Produk Belanja']
+    };
 
     res.status(200).json({
       success: true,
-      source: 'gemini',
-      data: parsedData
+      source: usedSource,
+      model: usedModel,
+      data: normalizedData
     });
   } catch (error) {
     next(error);

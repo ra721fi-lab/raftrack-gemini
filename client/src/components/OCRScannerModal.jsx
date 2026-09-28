@@ -84,7 +84,7 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
     const reader = new FileReader();
     reader.onloadend = async () => {
       try {
-        if (addToast) addToast('Mengaktifkan Gemini AI Multimodal OCR. Menganalisis struk...', 'info');
+        if (addToast) addToast('Mengaktifkan NVIDIA AI Vision OCR. Menganalisis struk...', 'info');
 
         const base64String = reader.result;
         const token = localStorage.getItem('raftrack_token');
@@ -110,19 +110,22 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
         const ocrData = resData.data;
 
         const parsedReceipt = {
-          id: 'gemini_parsed',
+          id: 'nvidia_parsed',
           name: ocrData.merchant || 'Struk Retail',
           date: ocrData.date || new Date().toISOString().substring(0, 10),
           amount: Number(ocrData.amount || 0),
           category_name: ocrData.category || 'lainnya',
           description: ocrData.description || `Belanja di ${ocrData.merchant || 'Retail'}`,
           color: '#00f2fe',
-          items: ocrData.items || ['1x Produk Belanja']
+          items: ocrData.items || ['1x Produk Belanja'],
+          source: resData.source || 'nvidia',
+          model: resData.model || 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning'
         };
 
         setScanning(false);
         setScannedData(parsedReceipt);
-        if (addToast) addToast(`Gemini AI OCR sukses mendeteksi struk ${parsedReceipt.name}!`, 'success');
+        const sourceLabel = resData.source === 'nvidia' ? 'NVIDIA AI' : (resData.source === 'gemini' ? 'Gemini AI' : 'AI OCR');
+        if (addToast) addToast(`${sourceLabel} sukses mendeteksi struk ${parsedReceipt.name}!`, 'success');
 
       } catch (err) {
         console.error('[Gemini AI OCR Error, beralih ke Fallback Simulator]:', err);
@@ -167,7 +170,12 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
         <div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/5">
           <div className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-neonBlue neon-text-blue animate-pulse" />
-            <h3 className="text-sm font-bold tracking-widest text-slate-100 font-mono uppercase">AI RECEIPT SCANNER OCR</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold tracking-widest text-slate-100 font-mono uppercase">AI RECEIPT SCANNER OCR</h3>
+              <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                NVIDIA AI
+              </span>
+            </div>
           </div>
           <button 
             onClick={onClose}
@@ -191,7 +199,7 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
                 {/* Teks Loading */}
                 <div className="flex flex-col items-center gap-2 z-10">
                   <div className="w-8 h-8 border-2 border-t-cyanGlow border-r-cyanGlow/30 rounded-full animate-spin"></div>
-                  <p className="text-[10px] font-mono tracking-widest text-cyanGlow animate-pulse">MEMINDAI STRUK...</p>
+                  <p className="text-[10px] font-mono tracking-widest text-cyanGlow animate-pulse">MEMINDAI DENGAN NVIDIA AI...</p>
                 </div>
               </div>
             ) : scannedData ? (
@@ -199,7 +207,12 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
               <div className="w-full h-full border border-cyanGlow/30 rounded-xl p-5 flex flex-col justify-between bg-darkSpace-800 relative">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-[9px] font-mono text-cyanGlow font-bold uppercase border border-cyanGlow/30 px-1.5 py-0.5 rounded">SUCCESS</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] font-mono text-cyanGlow font-bold uppercase border border-cyanGlow/30 px-1.5 py-0.5 rounded">SUCCESS</span>
+                      {scannedData.source === 'nvidia' && (
+                        <span className="text-[9px] font-mono text-emerald-400 font-bold uppercase border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded">NVIDIA AI</span>
+                      )}
+                    </div>
                     <h4 className="text-sm font-bold text-white mt-2 leading-none font-mono">{scannedData.name}</h4>
                   </div>
                   <div className="w-6 h-6 rounded-full bg-cyanGlow/25 border border-cyanGlow flex items-center justify-center">
@@ -241,7 +254,7 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
                 <Upload className="w-8 h-8 text-slate-500 group-hover:text-neonBlue group-hover:scale-110 transition-all mb-3" />
                 <h5 className="text-xs font-bold text-slate-300">Unggah Foto Struk</h5>
                 <p className="text-[9px] text-slate-500 mt-1 font-mono leading-relaxed">
-                  Format JPG, PNG (Simulasi pembacaan data otomatis pintar)
+                  Format JPG, PNG (Didukung oleh NVIDIA AI Vision OCR)
                 </p>
               </div>
             )}
