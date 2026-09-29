@@ -6,6 +6,9 @@ export const getApiUrl = () => {
   if (typeof window !== 'undefined') {
     const customUrl = localStorage.getItem('raftrack_api_url');
     if (customUrl) return customUrl.trim().replace(/\/$/, '');
+    if (!import.meta.env.DEV) {
+      return import.meta.env.VITE_API_URL || window.location.origin;
+    }
   }
   return import.meta.env.DEV
     ? '' // Menggunakan proxy Vite lokal pada saat Development
