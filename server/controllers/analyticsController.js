@@ -362,30 +362,39 @@ const handleReceiptOCR = async (req, res, next) => {
     }
 
     const safeMimeType = mimeType || 'image/jpeg';
-    const nvidiaApiKey = process.env.NVIDIA_API_KEY || "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";
-    const primaryModel = process.env.NVIDIA_MODEL || "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+    const nvidiaApiKey = process.env.NVIDIA_API_KEY || "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";
+    const primaryModel = process.env.NVIDIA_MODEL || "meta/llama-3.2-11b-vision-instruct";
     const geminiApiKey = process.env.GEMINI_API_KEY;
 
     // Ensure data URI format for vision API
     const dataUri = image.startsWith('data:') ? image : `data:${safeMimeType};base64,${image}`;
     const cleanBase64 = image.includes('base64,') ? image.split('base64,')[1] : image;
 
-    const prompt = `Anda adalah sistem AI OCR presisi tinggi spesialis membaca nota kasir / struk belanja / invoice ritel.
-Tugas Anda adalah memindai gambar struk ini, membaca seluruh teks secara mendalam, dan mengekstrak rincian transaksi belanja.
+    const prompt = `Anda adalah sistem AI Vision OCR spesialis struk belanja & faktur Indonesia berakurasi tinggi.
+Tugas Anda: Baca gambar struk belanja / nota kasir / invoice ini secara seksama dan ekstrak informasi ke format JSON.
+
+PANDUAN KATEGORISASI (PENTING):
+- 'transportasi': jika struk dari SPBU (Pertamina, Shell, BP, bensin, solar, pertalite, pertamax), tiket kereta/pesawat/bus, grab, gojek, parkir, tol, bengkel motor/mobil.
+- 'tagihan': jika struk pembayaran listrik PLN, token listrik, PDAM/air, Indihome/Wifi, pulsa/kuota data Telkomsel/XL/Indosat, BPJS.
+- 'makanan': jika struk dari restoran, cafe, warung makan, kedai kopi, bakery, belanja makanan di minimarket.
+- 'hiburan': jika tiket bioskop (XXI, CGV), game/voucher, tempat wisata, rekreasi, streaming.
+- 'investasi': jika pembelian emas, reksadana, aset kripto, tabungan berjangka.
+- 'lainnya': belanja supermarket kebutuhan rumah tangga non-makanan, pakaian, obat apotek, dll.
+
 Wajib berikan respon HANYA dalam format JSON valid tanpa penjelasan tambahan dan tanpa blok pembungkus markdown (tanpa \`\`\`json).
 
 Format JSON yang wajib dipatuhi:
 {
-  "merchant": "Nama toko atau ritel (contoh: 'Indomaret', 'Alfamart', 'Starbucks', 'KFC', dll. Bersihkan dari simbol)",
-  "amount": Total nominal pembayaran akhir bersih yang dibayar (harus angka/integer bulat murni, contoh: 85000, bukan string dan tanpa titik/koma/Rp),
-  "date": "Tanggal transaksi dalam format YYYY-MM-DD (jika tidak ditemukan atau kabur, gunakan tanggal: ${new Date().toISOString().substring(0, 10)})",
-  "category": "Pilih salah satu pos kategori yang paling sesuai: 'makanan', 'transportasi', 'tagihan', 'hiburan', 'investasi', 'lainnya'",
-  "description": "Deskripsi singkat transaksi (contoh: 'Belanja di Indomaret')",
-  "items": ["Daftar item belanjaan maksimal 3 item utama dalam format 'Qtyx NamaItem', contoh: '1x Kopi', '2x Roti'"]
+  "merchant": "Nama toko / merchant ritel (contoh: 'Pertamina', 'Indomaret', 'Alfamart', 'KFC', dll. Bersihkan dari simbol)",
+  "amount": Total nominal pembayaran akhir (angka/integer bulat murni tanpa titik/koma/Rp, contoh: 50000, 125000),
+  "date": "Tanggal transaksi format YYYY-MM-DD (jika buram, gunakan: ${new Date().toISOString().substring(0, 10)})",
+  "category": "Pilih salah satu dari: 'transportasi', 'makanan', 'tagihan', 'hiburan', 'investasi', 'lainnya'",
+  "description": "Deskripsi singkat (contoh: 'Beli Bahan Bakar di Pertamina', 'Belanja di Indomaret')",
+  "items": ["Maksimal 3 item belanjaan utama dalam format 'Qtyx NamaItem', contoh: '1x Pertalite 5L', '2x Roti'"]
 }`;
 
     const parseJSONSafely = (text) => {
-      if (!text) throw new Error("Respon teks kosong dari AI");
+      if (!text) throw new Error("Respon teks kosong dari AI Vision");
       const startIdx = text.indexOf('{');
       const endIdx = text.lastIndexOf('}');
       if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
@@ -400,7 +409,7 @@ Format JSON yang wajib dipatuhi:
     let usedModel = null;
 
     // ========================================================
-    // 1. UTAMA: NVIDIA AI VISION OCR (NVIDIA API CATALOG)
+    // 1. UTAMA: NVIDIA AI VISION OCR (Meta Llama 3.2 11B Vision)
     // ========================================================
     if (nvidiaApiKey) {
       const invokeUrl = "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -421,14 +430,10 @@ Format JSON yang wajib dipatuhi:
                 ]
               }
             ],
-            max_tokens: 4096,
-            temperature: 0.2,
+            max_tokens: 1024,
+            temperature: 0.1,
             top_p: 0.95
           };
-
-          if (modelName.includes("reasoning")) {
-            payload.reasoning_budget = 4096;
-          }
 
           const response = await fetch(invokeUrl, {
             method: "POST",
@@ -456,30 +461,32 @@ Format JSON yang wajib dipatuhi:
         }
       };
 
-      // Coba model prioritas (NVIDIA Nemotron 3 Nano Omni Reasoning)
+      // Coba model prioritas (Meta Llama 3.2 11B Vision - Sangat Cepat & Akurat)
       try {
-        console.log(`[NVIDIA OCR] Menggunakan model utama: ${primaryModel}...`);
+        console.log(`[NVIDIA OCR] Memproses struk dengan model utama: ${primaryModel}...`);
         ocrResult = await callNvidiaModel(primaryModel, 15000);
         usedSource = 'nvidia';
         usedModel = primaryModel;
       } catch (nvidiaErr) {
         console.warn(`[NVIDIA OCR Warning] Model ${primaryModel} gagal/timeout:`, nvidiaErr.message);
         
-        // Fallback cepat ke model vision responsif (Llama 3.2 11B Vision)
-        try {
-          const fastModel = "meta/llama-3.2-11b-vision-instruct";
-          console.log(`[NVIDIA OCR] Beralih ke fallback responsif: ${fastModel}...`);
-          ocrResult = await callNvidiaModel(fastModel, 12000);
-          usedSource = 'nvidia';
-          usedModel = fastModel;
-        } catch (fastErr) {
-          console.warn(`[NVIDIA OCR Warning] Fallback responsif juga gagal:`, fastErr.message);
+        // Cadangan ke Nemotron jika model pertama bermasalah
+        if (primaryModel !== "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning") {
+          try {
+            const fallbackModel = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning";
+            console.log(`[NVIDIA OCR] Mencoba cadangan: ${fallbackModel}...`);
+            ocrResult = await callNvidiaModel(fallbackModel, 12000);
+            usedSource = 'nvidia';
+            usedModel = fallbackModel;
+          } catch (secErr) {
+            console.warn(`[NVIDIA OCR Warning] Cadangan juga gagal:`, secErr.message);
+          }
         }
       }
     }
 
     // ========================================================
-    // 2. CADANGAN: GOOGLE GEMINI MULTIMODAL AI
+    // 2. CADANGAN: GOOGLE GEMINI MULTIMODAL AI (JIKA DIKONFIGURASI)
     // ========================================================
     if (!ocrResult && geminiApiKey) {
       try {
@@ -504,22 +511,10 @@ Format JSON yang wajib dipatuhi:
       }
     }
 
-    // ========================================================
-    // 3. CADANGAN TERAKHIR: SIMULATOR CERDAS (OFFLINE SAFE)
-    // ========================================================
+    // Jika semua model AI gagal mengenali struk, kembalikan respon error yang transparan (bukan data palsu acak!)
     if (!ocrResult) {
-      console.log("[OCR Fallback] Menggunakan Fallback Simulator...");
-      const randomAmount = Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000;
-      ocrResult = {
-        merchant: 'Struk Retail Offline',
-        amount: randomAmount,
-        date: new Date().toISOString().substring(0, 10),
-        category: 'makanan',
-        description: 'Belanja Offline (Mode Fallback)',
-        items: ['1x Produk Belanja Terdeteksi', '1x Pajak PPN 11%']
-      };
-      usedSource = 'fallback';
-      usedModel = 'simulator';
+      res.status(422);
+      throw new Error("AI Vision belum berhasil mengenali teks struk. Harap pastikan foto struk memiliki pencahayaan cukup dan teks terlihat jelas.");
     }
 
     // Normalisasi data hasil ekstraksi agar konsisten dan valid
@@ -533,7 +528,7 @@ Format JSON yang wajib dipatuhi:
         ? String(ocrResult.category).toLowerCase()
         : 'lainnya',
       description: ocrResult.description || `Belanja di ${ocrResult.merchant || 'Retail'}`,
-      items: Array.isArray(ocrResult.items) && ocrResult.items.length > 0 ? ocrResult.items : ['1x Produk Belanja']
+      items: Array.isArray(ocrResult.items) && ocrResult.items.length > 0 ? ocrResult.items : ['1x Item Pembelian']
     };
 
     res.status(200).json({

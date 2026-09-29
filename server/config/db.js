@@ -116,12 +116,65 @@ async function connectDB() {
 // Fungsi pembantu untuk membaca dan menulis Lokadata JSON
 function readLokadata() {
   initLokadata();
-  const data = fs.readFileSync(LOKADATA_FILE, 'utf8');
-  return JSON.parse(data);
+  try {
+    const data = fs.readFileSync(LOKADATA_FILE, 'utf8');
+    return JSON.parse(data);
+  } catch (err) {
+    console.error('[Lokadata Read Error, attempting recovery]:', err.message);
+    const backupFile = `${LOKADATA_FILE}.bak`;
+    if (fs.existsSync(backupFile)) {
+      try {
+        const bakData = fs.readFileSync(backupFile, 'utf8');
+        const parsed = JSON.parse(bakData);
+        // Pulihkan dari backup
+        fs.writeFileSync(LOKADATA_FILE, bakData, 'utf8');
+        return parsed;
+      } catch (bakErr) {
+        console.error('[Lokadata Backup also invalid]:', bakErr.message);
+      }
+    }
+    // Fallback struktur default jika file rusak total
+    return {
+      users: [],
+      categories: [
+        { id: 1, name: 'makanan', type: 'pengeluaran', color: '#ff007f', icon: 'Utensils' },
+        { id: 2, name: 'transportasi', type: 'pengeluaran', color: '#00f2fe', icon: 'Car' },
+        { id: 3, name: 'tagihan', type: 'pengeluaran', color: '#ffd000', icon: 'CreditCard' },
+        { id: 4, name: 'hiburan', type: 'pengeluaran', color: '#b92bff', icon: 'Gamepad2' },
+        { id: 5, name: 'investasi', type: 'pengeluaran', color: '#00ff87', icon: 'TrendingUp' },
+        { id: 6, name: 'gaji', type: 'pemasukan', color: '#05c1ff', icon: 'DollarSign' },
+        { id: 7, name: 'lainnya', type: 'pengeluaran', color: '#a0aec0', icon: 'HelpCircle' }
+      ],
+      transactions: []
+    };
+  }
 }
 
 function writeLokadata(data) {
-  fs.writeFileSync(LOKADATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  try {
+    const tempFile = `${LOKADATA_FILE}.tmp`;
+    const backupFile = `${LOKADATA_FILE}.bak`;
+    const content = JSON.stringify(data, null, 2);
+    
+    // Tulis ke file temporer terlebih dahulu
+    fs.writeFileSync(tempFile, content, 'utf8');
+    
+    // Backup file valid yang sudah ada
+    if (fs.existsSync(LOKADATA_FILE)) {
+      try {
+        fs.copyFileSync(LOKADATA_FILE, backupFile);
+      } catch (copyErr) {
+        // Abaikan jika copy backup gagal
+      }
+    }
+    
+    // Rename atomik (menghindari korupsi data saat proses penulisan bersamaan)
+    fs.renameSync(tempFile, LOKADATA_FILE);
+  } catch (err) {
+    console.error('[Lokadata Write Error]:', err.message);
+    // Fallback tulis langsung
+    fs.writeFileSync(LOKADATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+  }
 }
 
 module.exports = {

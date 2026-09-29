@@ -164,25 +164,14 @@ const OCRScannerModal = ({ isOpen, onClose, onScanSuccess, addToast }) => {
       if (addToast) addToast(`${sourceLabel} sukses mendeteksi struk ${parsedReceipt.name}!`, 'success');
 
     } catch (err) {
-      console.error('[NVIDIA AI OCR Error, beralih ke Fallback Cerdas]:', err);
-      
-      // Fallback Simulator Cerdas jika koneksi internet terganggu/server tidak merespon
-      const cleanName = file.name.replace(/\.[^/.]+$/, "").substring(0, 20);
-      const fallbackReceipt = {
-        id: 'custom_fallback',
-        name: cleanName || 'Struk Ritel',
-        date: new Date().toISOString().substring(0, 10),
-        amount: Math.floor(Math.random() * (120000 - 15000 + 1)) + 15000,
-        category_name: 'makanan',
-          description: `Belanja ${cleanName || 'Kustom'}`,
-          color: '#00f2fe',
-          items: ['1x Item Terdeteksi', '1x Pajak PPN 11%']
-        };
-
-        setScanning(false);
-        setScannedData(fallbackReceipt);
-        if (addToast) addToast(`Pemindaian selesai (Mode Simulator Fallback)`, 'info');
-      }
+      console.error('[NVIDIA AI OCR Error]:', err);
+      setScanning(false);
+      setScannedData(null);
+      const errMsg = err.name === 'AbortError' 
+        ? 'Pemindaian melebihi batas waktu (timeout 20 detik). Coba unggah gambar lebih kecil.' 
+        : (err.message || 'Gagal memindai struk dengan AI OCR.');
+      if (addToast) addToast(errMsg, 'error');
+    }
   };
 
   return (
