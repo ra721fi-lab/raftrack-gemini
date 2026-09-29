@@ -1,30 +1,34 @@
 const db = require('../config/db');
 
 class UserModel {
-  // Mencari user berdasarkan username
+  // Mencari user berdasarkan username (case-insensitive & trim-safe)
   static async findByUsername(username) {
+    if (!username) return null;
+    const cleanUsername = String(username).trim().toLowerCase();
     const dbType = db.getDbType();
     if (dbType === 'mysql') {
       const pool = db.getPool();
-      const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username]);
+      const [rows] = await pool.query('SELECT * FROM users WHERE LOWER(TRIM(username)) = ?', [cleanUsername]);
       return rows[0] || null;
     } else {
       const data = db.readLokadata();
-      const user = data.users.find(u => u.username === username);
+      const user = data.users.find(u => String(u.username || '').trim().toLowerCase() === cleanUsername);
       return user || null;
     }
   }
 
-  // Mencari user berdasarkan email
+  // Mencari user berdasarkan email (case-insensitive & trim-safe)
   static async findByEmail(email) {
+    if (!email) return null;
+    const cleanEmail = String(email).trim().toLowerCase();
     const dbType = db.getDbType();
     if (dbType === 'mysql') {
       const pool = db.getPool();
-      const [rows] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+      const [rows] = await pool.query('SELECT * FROM users WHERE LOWER(TRIM(email)) = ?', [cleanEmail]);
       return rows[0] || null;
     } else {
       const data = db.readLokadata();
-      const user = data.users.find(u => u.email === email);
+      const user = data.users.find(u => String(u.email || '').trim().toLowerCase() === cleanEmail);
       return user || null;
     }
   }

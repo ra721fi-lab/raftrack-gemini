@@ -129,12 +129,13 @@ const loginUser = async (req, res, next) => {
       throw new Error('Harap masukkan username/email dan kata sandi');
     }
 
-    // Cari berdasarkan email atau username
-    let user = null;
-    if (identity.includes('@')) {
-      user = await UserModel.findByEmail(identity.toLowerCase().trim());
-    } else {
-      user = await UserModel.findByUsername(identity.toLowerCase().trim());
+    // Bersihkan input
+    const cleanIdentity = String(identity || '').trim().toLowerCase();
+
+    // Cari fleksibel: periksa email terlebih dahulu, jika tidak ada periksa username
+    let user = await UserModel.findByEmail(cleanIdentity);
+    if (!user) {
+      user = await UserModel.findByUsername(cleanIdentity);
     }
 
     if (!user) {
